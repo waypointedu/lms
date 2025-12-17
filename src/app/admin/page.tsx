@@ -71,6 +71,7 @@ export default function AdminPage() {
               <li>Enable RLS and policies for check-ins, progress, and submissions tables.</li>
               <li>Connect a GitHub content repo or keep MDX locally for the MVP.</li>
               <li>Protect main with CI for linting, type-checks, and MDX validation.</li>
+              <li>Run SQL migrations in <code>supabase/migrations</code> and seed data from <code>supabase/seed.sql</code>.</li>
             </ul>
           </div>
           <div className="card p-6 space-y-3">

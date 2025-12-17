@@ -4,10 +4,11 @@ import ReactMarkdown from "react-markdown";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SectionHeader } from "@/components/ui/section-header";
-import { courses } from "@/data/courses";
 import { getMarkdown, listCourseMarkdown } from "@/lib/markdown";
+import { getCatalogCourses } from "@/lib/queries";
 
 export default async function CoursesPage() {
+  const catalog = await getCatalogCourses();
   const markdownSlugs = await listCourseMarkdown();
   const markdownContent = await Promise.all(
     markdownSlugs.map(async (slug) => getMarkdown(`courses/${slug}`)),
@@ -24,35 +25,20 @@ export default async function CoursesPage() {
         />
 
         <div className="grid gap-6 md:grid-cols-2">
-          {courses.map((course) => (
+          {catalog.map((course) => (
             <div key={course.slug} id={course.slug} className="card p-6 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="pill">{course.level}</span>
-                <span className="text-sm text-[var(--muted)]">{course.duration}</span>
+                <span className="pill">Course</span>
+                {course.published ? (
+                  <span className="text-sm text-[var(--muted)]">Published</span>
+                ) : (
+                  <span className="text-sm text-[var(--muted)]">Draft</span>
+                )}
               </div>
               <h2 className="text-2xl font-bold">{course.title}</h2>
               <p className="text-[var(--muted)]">{course.description}</p>
-              <div className="grid gap-2 text-sm">
-                {course.lessons.slice(0, 3).map((lesson) => (
-                  <div key={lesson.title} className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
-                    <span className="font-semibold text-[var(--ink)]">{lesson.title}</span>
-                    <span className="text-[var(--muted)]">• {lesson.duration}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {course.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-full bg-[var(--accent-light)] px-3 py-1 text-xs font-semibold text-[var(--accent-deep)]"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-              <Link href="/dashboard" className="button-secondary w-fit">
-                Start course
+              <Link href={`/courses/${course.slug}`} className="button-secondary w-fit">
+                View course
               </Link>
             </div>
           ))}

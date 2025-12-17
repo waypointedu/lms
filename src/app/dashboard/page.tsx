@@ -5,7 +5,9 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { ProgressCard } from "@/components/dashboard/progress-card";
 import { SectionHeader } from "@/components/ui/section-header";
-import { checkInPrompts, dashboardProgress, liveSessions } from "@/data/courses";
+import { checkInPrompts } from "@/data/courses";
+import { getCurrentProfile, getLiveSessions } from "@/lib/queries";
+import { getSupabaseServerClient } from "@/lib/supabase-server";
 
 const signals = [
   {
@@ -28,7 +30,60 @@ const signals = [
   },
 ];
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const session = await getCurrentProfile();
+  const supabase = getSupabaseServerClient();
+
+  let progressCards: Array<{ course: string; completed: number; total: number; status: "on-track" | "at-risk" | "off-track" }> = [];
+  const liveSessions = await getLiveSessions();
+
+  if (supabase && session?.user) {
+    const { data: enrollments, error: enrollmentError } = await supabase
+      .from("enrollments")
+      .select("course_id, courses(id, slug, title)")
+      .eq("user_id", session.user.id);
+
+    if (!enrollmentError && enrollments?.length) {
+      const courseIds = enrollments.map((enrollment) => enrollment.course_id);
+
+      const { data: modulesData } = courseIds.length
+        ? await supabase.from("modules").select("id, course_id").in("course_id", courseIds)
+        : { data: [] };
+
+      const moduleIds = (modulesData || []).map((module) => module.id);
+
+      const { data: lessons } = moduleIds.length
+        ? await supabase.from("lessons").select("id, module_id").in("module_id", moduleIds)
+        : { data: [] };
+
+      const { data: progress } = await supabase
+        .from("lesson_progress")
+        .select("lesson_id, completed_at")
+        .eq("user_id", session.user.id);
+
+      progressCards = enrollments.map((enrollment) => {
+        const moduleIdsForCourse = (modulesData || [])
+          .filter((mod) => mod.course_id === enrollment.course_id)
+          .map((mod) => mod.id);
+        const lessonsForCourse = (lessons || []).filter((lesson) => moduleIdsForCourse.includes(lesson.module_id));
+        const completedCount = (progress || []).filter((p) =>
+          lessonsForCourse.some((lesson) => lesson.id === p.lesson_id && p.completed_at),
+        ).length;
+        const total = lessonsForCourse.length || 1;
+        const completionPercent = (completedCount / total) * 100;
+        const status: "on-track" | "at-risk" | "off-track" =
+          completionPercent >= 66 ? "on-track" : completionPercent >= 33 ? "at-risk" : "off-track";
+
+        return {
+          course: enrollment.courses?.title || "Course",
+          completed: completedCount,
+          total,
+          status,
+        };
+      });
+    }
+  }
+
   return (
     <div>
       <SiteHeader />
@@ -71,11 +126,17 @@ export default function DashboardPage() {
             title="On-track, at-risk, and off-track cohorts"
             description="Progress cards mirror Supabase course tables. Wire them to your Postgres views or analytics tables to keep teams aligned."
           />
-          <div className="grid gap-4 md:grid-cols-3">
-            {dashboardProgress.map((item) => (
-              <ProgressCard key={item.course} progress={item} />
-            ))}
-          </div>
+          {session?.user ? (
+            <div className="grid gap-4 md:grid-cols-3">
+              {progressCards.length ? (
+                progressCards.map((item) => <ProgressCard key={item.course} progress={item} />)
+              ) : (
+                <p className="text-[var(--muted)]">Enroll in a course to start tracking progress.</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-[var(--muted)]">Sign in to view your enrollments and progress.</p>
+          )}
         </section>
 
         <section className="grid gap-8 md:grid-cols-[1.1fr_0.9fr] items-start">

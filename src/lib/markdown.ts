@@ -27,6 +27,24 @@ export async function getMarkdown(slug: string): Promise<MarkdownContent | null>
   }
 }
 
+export async function getMarkdownByPath(relativePath: string): Promise<MarkdownContent | null> {
+  const cleanedPath = relativePath.replace(/^\//, "");
+  const filePath = path.join(contentRoot, cleanedPath);
+
+  try {
+    const file = await fs.readFile(filePath, "utf-8");
+    const parsed = matter(file);
+    return {
+      slug: cleanedPath,
+      content: parsed.content,
+      data: parsed.data,
+    };
+  } catch (error) {
+    console.warn("Unable to load markdown path", cleanedPath, error);
+    return null;
+  }
+}
+
 export async function listCourseMarkdown() {
   const courseDir = path.join(contentRoot, "courses");
   try {

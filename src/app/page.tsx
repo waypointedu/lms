@@ -9,13 +9,14 @@ import {
   Video,
 } from "lucide-react";
 
-import { submitCheckIn } from "@/app/actions/check-in";
+import { recordCheckIn } from "@/app/actions/lms";
 import { CourseCard } from "@/components/cards/course-card";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SectionHeader } from "@/components/ui/section-header";
 import { checkInPrompts, courses, liveSessions } from "@/data/courses";
 import { getMarkdown } from "@/lib/markdown";
+import { getCourseDetail } from "@/lib/queries";
 
 const valueProps = [
   {
@@ -37,7 +38,21 @@ const valueProps = [
 
 export default async function Home() {
   const courseMarkdown = await getMarkdown("courses/waypoint-foundations");
+  const courseDetail = await getCourseDetail("waypoint-foundations");
   const heroPrompt = checkInPrompts[0];
+
+  async function handleCheckIn(formData: FormData) {
+    "use server";
+    if (!courseDetail?.id) return;
+    const payload = {
+      prompt: heroPrompt.prompt,
+      learner: formData.get("learner"),
+      reflection: formData.get("reflection"),
+      course: formData.get("course"),
+    } as Record<string, unknown>;
+
+    await recordCheckIn(courseDetail.id, payload);
+  }
 
   return (
     <div>
@@ -182,7 +197,7 @@ export default async function Home() {
                 <p className="text-sm font-semibold text-[var(--ink)]">{heroPrompt.title}</p>
                 <p className="text-sm text-[var(--muted)]">{heroPrompt.prompt}</p>
               </div>
-              <form action={submitCheckIn} className="space-y-3">
+              <form action={handleCheckIn} className="space-y-3">
                 <input
                   type="hidden"
                   name="prompt"

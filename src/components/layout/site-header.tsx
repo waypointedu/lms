@@ -32,7 +32,7 @@ export function SiteHeader() {
               <Layers className="h-4 w-4" />
               Supabase ready
             </Link>
-            <Link href="/dashboard" className="button-secondary">Sign in</Link>
+            <Link href="/login" className="button-secondary">Sign in</Link>
           </div>
         </div>
 
