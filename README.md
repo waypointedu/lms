@@ -1,6 +1,6 @@
 # Waypoint LMS (GitHub-centered, Supabase-native)
 
-Waypoint LMS is a production-grade learning platform built with Next.js App Router, Tailwind CSS (v4), and Supabase. Content lives in GitHub as Markdown/MDX, while auth, data, and storage run through Supabase.
+Waypoint LMS is a production-grade learning platform built with Next.js App Router, Tailwind CSS (v4), and Supabase. Content lives in GitHub as Markdown/MDX, while auth, data, and storage run through Supabase. 
 
 ## Tech stack
 
