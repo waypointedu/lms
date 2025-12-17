@@ -1,0 +1,70 @@
+import Link from "next/link";
+import { Github, Layers, Sparkles, Search } from "lucide-react";
+
+import { SearchPanel } from "@/components/search/search-panel";
+
+const navLinks = [
+  { href: "/", label: "Home" },
+  { href: "/courses", label: "Courses" },
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/admin", label: "Admin" },
+];
+
+export function SiteHeader() {
+  return (
+    <header className="sticky top-0 z-40 bg-gradient-to-b from-white/85 via-white/92 to-white/70 backdrop-blur-lg border-b border-[rgba(20,34,64,0.08)]">
+      <div className="container flex flex-col gap-3 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="relative h-12 w-12 rounded-2xl bg-[radial-gradient(circle_at_30%_30%,rgba(28,79,156,0.28),rgba(12,46,109,0.06))] border border-[rgba(20,34,64,0.08)] shadow-sm flex items-center justify-center">
+              <Sparkles className="h-6 w-6 text-[var(--accent-deep)]" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.25em] text-[var(--muted)]">Waypoint</p>
+              <p className="text-xl font-bold text-[var(--ink)]">Learning Platform</p>
+            </div>
+          </Link>
+
+        <div className="flex flex-wrap items-center gap-3">
+            <span className="pill">
+              <Github className="h-4 w-4" />
+              GitHub-centered content
+            </span>
+            <Link href="https://supabase.com" className="pill" target="_blank" rel="noreferrer">
+              <Layers className="h-4 w-4" />
+              Supabase ready
+            </Link>
+            <SearchPanel />
+            <Link href="/login" className="button-secondary">Sign in</Link>
+          </div>
+        </div>
+
+        <nav className="glass-panel flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-8 text-[var(--muted)] font-semibold">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="group relative pb-1 transition-colors hover:text-[var(--accent-deep)]"
+              >
+                {link.label}
+                <span className="absolute left-0 -bottom-1 h-[2px] w-full scale-x-0 transform bg-[var(--accent)] transition-transform duration-300 ease-in-out group-hover:scale-x-100" />
+              </Link>
+            ))}
+          </div>
+          <div className="flex items-center gap-3 text-sm text-[var(--muted)]">
+            <span className="rounded-full bg-[var(--accent-light)] px-3 py-1 text-[var(--accent-deep)] font-semibold">
+              Live cohorts weekly
+            </span>
+            <span className="rounded-full bg-white px-3 py-1 border border-[rgba(20,34,64,0.08)]">
+              Secure & RLS-ready
+            </span>
+            <span className="hidden sm:inline-flex items-center gap-1 text-[var(--muted)]">
+              <Search className="h-4 w-4" /> Global search
+            </span>
+          </div>
+        </nav>
+      </div>
+    </header>
+  );
+}
