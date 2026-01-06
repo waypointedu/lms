@@ -7,7 +7,7 @@ function toCsv(rows: Record<string, unknown>[]) {
   const headers = Object.keys(rows[0]);
   const lines = [headers.join(",")];
   for (const row of rows) {
-    lines.push(headers.map((header) => JSON.stringify(row[header] ?? ""))?.["join"](",,"));
+    lines.push(headers.map((header) => JSON.stringify(row[header] ?? ""))?.join(","));
   }
   return lines.join("\n");
 }
