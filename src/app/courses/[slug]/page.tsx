@@ -45,7 +45,7 @@ export default async function CoursePage({ params }: { params: { slug: string } 
         />
 
         <div className="flex flex-wrap gap-3 items-center">
-          <span className="pill">Slug: {course.slug}</span>
+          <span className="pill">Course ID: {course.slug}</span>
           {course.language ? <span className="pill">Language: {course.language.toUpperCase()}</span> : null}
           {course.published ? (
             <span className="rounded-full bg-[var(--accent-light)] px-3 py-1 text-[var(--accent-deep)] font-semibold">
@@ -76,7 +76,7 @@ export default async function CoursePage({ params }: { params: { slug: string } 
 
         <div className="grid gap-4">
           {course.modules.length === 0 ? (
-            <div className="card p-5 text-[var(--muted)]">No modules yet. Add modules via Supabase or seed data.</div>
+            <div className="card p-5 text-[var(--muted)]">No modules yet. Check back for new lessons soon.</div>
           ) : (
             course.modules.map((module) => (
               <div key={module.title} className="card p-5 space-y-3">
