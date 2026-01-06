@@ -58,7 +58,7 @@ export default async function LessonPage({ params }: { params: { slug: string; l
               <ReactMarkdown>{markdown.content}</ReactMarkdown>
             </article>
           ) : (
-            <p className="text-[var(--muted)]">Content file not found. Confirm `content_path` exists in the repo.</p>
+            <p className="text-[var(--muted)]">Content not found yet. We’ll have this lesson ready soon.</p>
           )}
           <form
             action={async () => {
@@ -72,7 +72,7 @@ export default async function LessonPage({ params }: { params: { slug: string; l
             </Link>
           </form>
           <p className="text-xs text-[var(--muted)]">
-            Session: {session?.user ? "Signed in" : "Anonymous"}. Lesson gating uses Supabase RLS; ensure migrations are applied.
+            Session: {session?.user ? "Signed in" : "Anonymous"}. Lessons unlock when you’re enrolled and signed in.
           </p>
         </div>
       </main>

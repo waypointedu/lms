@@ -14,19 +14,19 @@ const signals = [
     label: "Check-ins captured",
     value: "Daily",
     icon: <FileCheck className="h-5 w-5" />,
-    description: "Server actions post to Supabase with RLS-aware policies.",
+    description: "Learners share quick updates each day.",
   },
   {
     label: "Storage buckets",
     value: "course-media, submissions",
     icon: <ShieldCheck className="h-5 w-5" />,
-    description: "Media and submissions live in Supabase Storage for safe uploads.",
+    description: "Files and homework stay organized.",
   },
   {
     label: "Live cadence",
     value: "Weekly",
     icon: <CalendarClock className="h-5 w-5" />,
-    description: "Office hours, standups, and launch reviews are pre-built.",
+    description: "Office hours and reviews are on the calendar.",
   },
 ];
 
