@@ -14,14 +14,15 @@ function toCsv(rows: Record<string, unknown>[]) {
 
 export async function GET(
   request: Request,
-  { params }: { params: { type: string } }
+  { params }: { params: Promise<{ type: string }> }
 ): Promise<Response> {
+  const { type } = await params;
+
   const supabase = getServiceRoleClient();
   if (!supabase) {
     return NextResponse.json({ error: "Service role not configured" }, { status: 501 });
   }
 
-  const type = params.type;
   let data: Record<string, unknown>[] = [];
 
   if (type === "enrollments") {
