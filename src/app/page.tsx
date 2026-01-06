@@ -21,18 +21,18 @@ import type { Json } from "@/types/supabase";
 
 const valueProps = [
   {
-    title: "Supabase auth + storage",
-    description: "Magic links, password fallback, storage buckets for media and submissions, plus RLS policies.",
+    title: "Simple sign-in and uploads",
+    description: "Log in quickly and share files without fuss.",
     icon: <ShieldCheck className="h-5 w-5" />,
   },
   {
-    title: "GitHub-centered content",
-    description: "MDX and Markdown content lives in your repo. Deploy previews on pull requests with automated checks.",
+    title: "Lessons live in one place",
+    description: "Keep course notes, videos, and worksheets together.",
     icon: <BookOpenCheck className="h-5 w-5" />,
   },
   {
-    title: "Live sessions & quizzes",
-    description: "Schedule live cohorts, track attendance, capture check-ins, and collect quiz attempts in Supabase.",
+    title: "Live sessions and practice",
+    description: "Join live calls, log check-ins, and review quick quizzes.",
     icon: <CalendarClock className="h-5 w-5" />,
   },
 ];
@@ -63,19 +63,19 @@ export default async function Home() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(28,79,156,0.18),transparent_40%),radial-gradient(circle_at_80%_0%,rgba(12,46,109,0.16),transparent_40%)]" />
           <div className="container relative grid gap-10 md:grid-cols-[1.1fr_0.9fr] items-center py-16">
             <div className="space-y-6">
-              <div className="pill w-fit">GitHub-centered • Supabase native</div>
+              <div className="pill w-fit">Guided learning • Friendly setup</div>
               <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-                Waypoint LMS for production-grade cohorts
+                Waypoint helps your learners stay on track
               </h1>
               <p className="text-lg text-[var(--muted)] max-w-2xl">
-                Build, launch, and scale courses with MDX stored in GitHub, Supabase auth and storage, and a Waypoint-branded Next.js shell ready for Vercel.
+                Run cohorts with clear lessons, quick sign-in, and easy uploads. Keep everyone focused without the technical clutter.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link href="/dashboard" className="button-primary">
-                  Launch dashboard
+                  Open dashboard
                 </Link>
                 <Link href="/courses" className="button-secondary">
-                  View course content
+                  Browse courses
                 </Link>
               </div>
               <div className="flex flex-wrap gap-4 text-sm text-[var(--muted)]">
@@ -85,7 +85,7 @@ export default async function Home() {
                 </span>
                 <span className="flex items-center gap-2 rounded-full bg-[var(--accent-light)] px-3 py-2 text-[var(--accent-deep)]">
                   <CheckCircle2 className="h-4 w-4" />
-                  MDX in GitHub
+                  Resources in one place
                 </span>
               </div>
             </div>
@@ -94,7 +94,7 @@ export default async function Home() {
               <div className="relative space-y-4 p-6">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-[var(--accent-deep)]">Live cohort toolkit</p>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold border border-[rgba(20,34,64,0.08)]">RLS ready</span>
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold border border-[rgba(20,34,64,0.08)]">All set up</span>
                 </div>
                 <div className="grid gap-3 text-sm">
                   {liveSessions.map((session) => (
@@ -109,7 +109,7 @@ export default async function Home() {
                   ))}
                 </div>
                 <div className="rounded-2xl bg-[var(--accent-light)] px-4 py-3 text-[var(--accent-deep)] font-semibold flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4" /> Supabase auth • Storage • RLS
+                  <ShieldCheck className="h-4 w-4" /> Safe sign-in and storage
                 </div>
               </div>
             </div>
@@ -120,8 +120,8 @@ export default async function Home() {
           <div className="container space-y-8">
             <SectionHeader
               eyebrow="Platform foundations"
-              title="Built-in pillars for a modern LMS"
-              description="Waypoint UI tokens, Supabase-native auth and storage, and GitHub-backed course content combine to ship a production-ready academy."
+              title="Built-in support for learners"
+              description="Welcome your cohort with easy sign-in, clear progress, and shared materials that stay in sync."
             />
             <div className="grid gap-4 md:grid-cols-3">
               {valueProps.map((value) => (
@@ -141,8 +141,8 @@ export default async function Home() {
           <div className="container space-y-10 py-14">
             <SectionHeader
               eyebrow="Courses"
-              title="Waypoint-designed tracks ready to clone"
-              description="Start with the provided MDX in GitHub, or connect a dedicated content repository and load it at build time."
+              title="Tracks ready to start today"
+              description="Jump into a ready-made course or add your own lessons. Everything stays organized for your group."
             />
             <div className="grid gap-6 md:grid-cols-2">
               {courses.map((course) => (
@@ -156,9 +156,9 @@ export default async function Home() {
           <div className="container grid gap-8 md:grid-cols-[1.1fr_0.9fr] items-start">
             <div className="space-y-4">
               <SectionHeader
-                eyebrow="Content in GitHub"
-                title="Markdown and MDX, rendered server-side"
-                description="Store your syllabus in GitHub, run linting and previews on pull requests, and render content on the server for reliable SEO and accessibility."
+                eyebrow="Content library"
+                title="Content that stays easy to read"
+                description="Keep your syllabus in one place and share it with the class. Lessons render quickly and look great on any device."
               />
               <div className="card p-6 space-y-4 text-[var(--muted)]">
                 {courseMarkdown ? (
@@ -183,15 +183,15 @@ export default async function Home() {
                     {courseMarkdown.content}
                   </ReactMarkdown>
                 ) : (
-                  <p>Content repository not found yet.</p>
+                  <p>We’ll add this content soon.</p>
                 )}
               </div>
             </div>
             <div className="card p-6 space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-[var(--accent-deep)]">Check-in & quiz scaffolding</p>
+                <p className="text-sm font-semibold text-[var(--accent-deep)]">Check-ins and quick quizzes</p>
                 <span className="rounded-full bg-[var(--accent-light)] px-3 py-1 text-xs font-semibold text-[var(--accent-deep)]">
-                  Server actions
+                  Quick setup
                 </span>
               </div>
               <div className="rounded-2xl bg-[rgba(20,34,64,0.04)] p-4">
@@ -230,14 +230,14 @@ export default async function Home() {
                   name="reflection"
                   rows={4}
                   className="w-full rounded-xl border border-[rgba(20,34,64,0.12)] bg-white px-3 py-2 focus:border-[var(--accent)] focus:outline-none"
-                  placeholder="Link your PR, share a blocker, or add a quiz link."
+                  placeholder="Share a win, a blocker, or a question for the team."
                 />
                 <button type="submit" className="button-primary w-full text-center">
                   Record check-in
                 </button>
               </form>
               <p className="text-xs text-[var(--muted)]">
-                Supabase service role keys are required for persistence; requests fall back to a safe no-op until configured.
+                Saving check-ins needs a quick setup step. Until then, the form is a safe demo.
               </p>
             </div>
           </div>
@@ -246,9 +246,9 @@ export default async function Home() {
         <section className="bg-white/90 border-y border-[rgba(20,34,64,0.08)]">
           <div className="container space-y-10 py-14">
             <SectionHeader
-              eyebrow="Admin & delivery"
-              title="Operate a cohort with clarity"
-              description="Use GitHub for source control, Supabase for auth + data, and Vercel for deployments. The LMS shell includes live sessions, check-ins, media storage, and analytics placeholders."
+              eyebrow="Classroom tools"
+              title="Run your cohort with ease"
+              description="Track enrollments, share media, and watch progress at a glance. Everything you need to guide learners is already here."
             />
             <div className="grid gap-4 md:grid-cols-3">
               {["Enrollments & entitlements", "Media & submissions", "Progress & analytics"].map((item) => (
@@ -256,13 +256,13 @@ export default async function Home() {
                   <h3 className="text-lg font-semibold">{item}</h3>
                   <p className="text-[var(--muted)]">
                     {item === "Enrollments & entitlements"
-                      ? "Stripe-ready stubs plus Supabase policies keep enrollment logic on the server."
+                      ? "Invite learners, manage seats, and keep track of who’s in the room."
                       : item === "Media & submissions"
-                        ? "Uploads flow to Supabase storage buckets with folder-per-learner defaults."
-                        : "Quizzes, check-ins, and attendance roll up into dashboards and exports."}
+                        ? "Collect videos, notes, and homework in one shared space."
+                        : "View check-ins, quiz results, and attendance in one place."}
                   </p>
-                  <Link href="/admin" className="text-[var(--accent-deep)] font-semibold">
-                    Open admin
+                  <Link href="/dashboard" className="text-[var(--accent-deep)] font-semibold">
+                    View dashboard
                   </Link>
                 </div>
               ))}

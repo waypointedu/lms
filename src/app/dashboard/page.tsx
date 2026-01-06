@@ -14,19 +14,19 @@ const signals = [
     label: "Check-ins captured",
     value: "Daily",
     icon: <FileCheck className="h-5 w-5" />,
-    description: "Server actions post to Supabase with RLS-aware policies.",
+    description: "Learners share quick updates each day.",
   },
   {
     label: "Storage buckets",
     value: "course-media, submissions",
     icon: <ShieldCheck className="h-5 w-5" />,
-    description: "Media and submissions live in Supabase Storage for safe uploads.",
+    description: "Files and homework stay organized.",
   },
   {
     label: "Live cadence",
     value: "Weekly",
     icon: <CalendarClock className="h-5 w-5" />,
-    description: "Office hours, standups, and launch reviews are pre-built.",
+    description: "Office hours and reviews are on the calendar.",
   },
 ];
 
@@ -100,16 +100,18 @@ export default async function DashboardPage() {
               <p className="pill">Learner dashboard</p>
               <h1 className="text-4xl font-bold mt-3">Progress and live sessions</h1>
               <p className="text-[var(--muted)] max-w-2xl">
-                Track course progress, record check-ins, and get ready for the next live session. This dashboard is wired for Supabase tables and storage buckets.
+                Track your courses, log quick check-ins, and see what’s coming next. Everything here is tuned for learners first.
               </p>
             </div>
             <div className="flex gap-3">
               <Link href="/courses" className="button-secondary">
                 Browse catalog
               </Link>
-              <Link href="/admin" className="button-primary">
-                Open admin tools
-              </Link>
+              {session?.profile?.role === "admin" ? (
+                <Link href="/admin" className="button-primary">
+                  Go to admin view
+                </Link>
+              ) : null}
             </div>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
@@ -129,8 +131,8 @@ export default async function DashboardPage() {
         <section className="space-y-6">
           <SectionHeader
             eyebrow="Progress"
-            title="On-track, at-risk, and off-track cohorts"
-            description="Progress cards mirror Supabase course tables. Wire them to your Postgres views or analytics tables to keep teams aligned."
+            title="On track, catch up, and needs attention"
+            description="Progress cards show a quick pulse on each course and where to focus next."
           />
           {session?.user ? (
             <div className="grid gap-4 md:grid-cols-3">
@@ -155,7 +157,7 @@ export default async function DashboardPage() {
             </div>
             <div className="space-y-3">
               {liveSessions.length === 0 ? (
-                <p className="text-[var(--muted)] text-sm">No live sessions yet. Add them in Supabase or seed data.</p>
+                <p className="text-[var(--muted)] text-sm">No live sessions yet. Check back soon.</p>
               ) : (
                 liveSessions.map((session: LiveSessionRow) => (
                   <div key={session.title} className="flex items-start gap-3 rounded-2xl border border-[rgba(20,34,64,0.08)] bg-[rgba(20,34,64,0.02)] px-3 py-3">
@@ -181,7 +183,7 @@ export default async function DashboardPage() {
               ))}
             </div>
             <p className="text-xs text-[var(--muted)]">
-              Connect the form on the home page or your own client component to Supabase with server actions to log attendance.
+              Use these prompts in your next check-in to keep everyone moving forward.
             </p>
           </div>
         </section>
