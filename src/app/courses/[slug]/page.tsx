@@ -64,7 +64,7 @@ export default async function CoursePage({ params }: { params: { slug: string } 
         />
 
         <div className="flex flex-wrap gap-3 items-center">
-          <span className="pill">Slug: {course.slug}</span>
+          <span className="pill">Course ID: {course.slug}</span>
           {course.language ? <span className="pill">Language: {course.language.toUpperCase()}</span> : null}
           {course.published ? (
             <span className="rounded-full bg-[var(--accent-light)] px-3 py-1 text-[var(--accent-deep)] font-semibold">

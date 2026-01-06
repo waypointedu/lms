@@ -136,15 +136,15 @@ export const liveSessions = [
 export const checkInPrompts = [
   {
     title: "Daily check-in",
-    prompt: "What did you ship yesterday, and what’s the next GitHub issue you’re closing today?",
+    prompt: "What did you finish yesterday, and what will you tackle today?",
   },
   {
     title: "Confidence pulse",
-    prompt: "Rate your confidence with Supabase auth + storage and share one blocker for today’s session.",
+    prompt: "How confident do you feel right now? Share one thing that needs support today.",
   },
   {
     title: "Reflection",
-    prompt: "Link a PR you’re proud of this week and describe the feedback you incorporated.",
+    prompt: "Share a win from this week and how it helped you learn.",
   },
 ];
 

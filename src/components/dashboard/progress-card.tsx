@@ -10,12 +10,12 @@ const statusCopy: Record<DashboardProgress["status"], { label: string; icon: JSX
     tone: "text-green-700 bg-green-50 border-green-100",
   },
   "at-risk": {
-    label: "Needs attention",
+    label: "Catch up",
     icon: <AlertTriangle className="h-4 w-4" />,
     tone: "text-amber-700 bg-amber-50 border-amber-100",
   },
   "off-track": {
-    label: "Off track",
+    label: "Needs attention",
     icon: <Activity className="h-4 w-4" />,
     tone: "text-red-700 bg-red-50 border-red-100",
   },

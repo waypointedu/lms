@@ -29,8 +29,8 @@ export default async function CoursesPage({ searchParams }: { searchParams: { la
       <main className="container space-y-14 py-12">
         <SectionHeader
           eyebrow="Course catalog"
-          title="Author in Markdown, publish with Next.js"
-          description="These tracks are stored in the repository as MDX. Fork the repo, add your own courses, and load external content with a Git submodule or GitHub API."
+          title="Choose a course and start learning"
+          description="Browse the catalog, pick your next lesson, and jump in. Everything is ready for your cohort."
         />
 
         <form className="flex flex-wrap items-center gap-3" action="/courses" method="get">
@@ -61,7 +61,7 @@ export default async function CoursesPage({ searchParams }: { searchParams: { la
 
         {catalog.length === 0 ? (
           <div className="card p-6 text-[var(--muted)]">
-            No courses found for this language. Add entries via Supabase or markdown content.
+            No courses found for this language. Try another filter or check back soon.
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2">
@@ -88,7 +88,7 @@ export default async function CoursesPage({ searchParams }: { searchParams: { la
         <div className="grid gap-8 md:grid-cols-2 items-start">
           {markdownContent.map((markdown) => (
             <div key={markdown?.slug} className="card p-6 space-y-3">
-              <p className="text-sm font-semibold text-[var(--muted)]">GitHub MDX</p>
+              <p className="text-sm font-semibold text-[var(--muted)]">Course preview</p>
               <h3 className="text-xl font-bold">{markdown?.data.title as string}</h3>
               <p className="text-sm text-[var(--muted)]">
                 Audience: {markdown?.data.audience as string} • Duration: {markdown?.data.duration as string}
@@ -110,7 +110,7 @@ export default async function CoursesPage({ searchParams }: { searchParams: { la
                     {markdown.content}
                   </ReactMarkdown>
                 ) : (
-                  <p>Content not found. Add MDX files under src/content/courses.</p>
+                  <p>Content not found. Add course details under src/content/courses.</p>
                 )}
               </div>
             </div>
