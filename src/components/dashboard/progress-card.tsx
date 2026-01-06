@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 
-import { Activity, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Activity, CheckCircle2, Clock3 } from "lucide-react";
 import type { DashboardProgress } from "@/data/courses";
 
 const statusCopy: Record<DashboardProgress["status"], { label: string; icon: JSX.Element; tone: string }> = {
@@ -9,15 +9,15 @@ const statusCopy: Record<DashboardProgress["status"], { label: string; icon: JSX
     icon: <CheckCircle2 className="h-4 w-4" />,
     tone: "text-green-700 bg-green-50 border-green-100",
   },
-  "at-risk": {
+  behind: {
     label: "Catch up",
-    icon: <AlertTriangle className="h-4 w-4" />,
+    icon: <Activity className="h-4 w-4" />,
     tone: "text-amber-700 bg-amber-50 border-amber-100",
   },
-  "off-track": {
-    label: "Needs attention",
-    icon: <Activity className="h-4 w-4" />,
-    tone: "text-red-700 bg-red-50 border-red-100",
+  ready: {
+    label: "Ready",
+    icon: <Clock3 className="h-4 w-4" />,
+    tone: "text-blue-700 bg-blue-50 border-blue-100",
   },
 };
 

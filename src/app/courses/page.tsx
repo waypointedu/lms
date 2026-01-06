@@ -28,9 +28,9 @@ export default async function CoursesPage({ searchParams }: { searchParams: { la
       <SiteHeader />
       <main className="container space-y-14 py-12">
         <SectionHeader
-          eyebrow="Course catalog"
-          title="Choose a course and start learning"
-          description="Browse the catalog, pick your next lesson, and jump in. Everything is ready for your cohort."
+          eyebrow="Learning pathways"
+          title="Waypoint Institute • Year One"
+          description="View the pathway outline, checkpoints, and capstone-ready lessons. Students only see what they are enrolled in."
         />
 
         <form className="flex flex-wrap items-center gap-3" action="/courses" method="get">
@@ -77,6 +77,9 @@ export default async function CoursesPage({ searchParams }: { searchParams: { la
                 </div>
                 <h2 className="text-2xl font-bold">{course.title}</h2>
                 <p className="text-[var(--muted)]">{course.description}</p>
+                <p className="text-sm text-[var(--muted)]">
+                  Duration: {course.duration_weeks ? `${course.duration_weeks} weeks` : course.duration || "Self-paced"}
+                </p>
                 <Link href={`/courses/${course.slug}`} className="button-secondary w-fit">
                   View course
                 </Link>
@@ -110,7 +113,7 @@ export default async function CoursesPage({ searchParams }: { searchParams: { la
                     {markdown.content}
                   </ReactMarkdown>
                 ) : (
-                  <p>Content not found. Add course details under src/content/courses.</p>
+                  <p>Content not found. Add pathway details under src/content/courses.</p>
                 )}
               </div>
             </div>

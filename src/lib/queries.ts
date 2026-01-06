@@ -1,5 +1,6 @@
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { courses as fallbackCourses } from "@/data/courses";
+import type { User } from "@supabase/supabase-js";
 
 const slugify = (value: string) => value.toLowerCase().replace(/\s+/g, "-");
 
@@ -9,6 +10,7 @@ export interface CourseSummary {
   title: string;
   description?: string | null;
   duration?: string;
+  duration_weeks?: number | null;
   published?: boolean | null;
   language?: string | null;
   tags?: string[];
@@ -32,7 +34,13 @@ export interface CourseDetail extends CourseSummary {
   }>;
 }
 
-export async function getCurrentProfile() {
+export interface ProfileSession {
+  user: User;
+  profile: { id: string; display_name: string | null; role: string | null };
+  roles: string[];
+}
+
+export async function getCurrentProfile(): Promise<ProfileSession | null> {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return null;
 
@@ -48,7 +56,17 @@ export async function getCurrentProfile() {
     .eq("id", user.id)
     .maybeSingle();
 
-  return profile ? { user, profile } : { user, profile: null };
+  const { data: roleRows } = await supabase
+    .from("profile_roles")
+    .select("roles!inner(slug)")
+    .eq("profile_id", user.id);
+
+  const roles =
+    roleRows
+      ?.map((row: { roles?: { slug?: string | null } | null }) => row.roles?.slug)
+      .filter((slug): slug is string => Boolean(slug)) || [];
+
+  return { user, profile: profile || { id: user.id, display_name: null, role: null }, roles };
 }
 
 export async function getCatalogCourses(): Promise<CourseSummary[]> {
@@ -59,15 +77,15 @@ export async function getCatalogCourses(): Promise<CourseSummary[]> {
       title: course.title,
       description: course.description,
       duration: course.duration,
+      duration_weeks: undefined,
       published: true,
-      tags: course.tags,
       language: course.language,
     }));
   }
 
   const { data, error } = await supabase
     .from("courses")
-    .select("id, slug, title, description, published, language")
+    .select("id, slug, title, description, published, language, duration_weeks")
     .order("title", { ascending: true });
 
   if (error || !data) {
@@ -90,8 +108,9 @@ export async function getCourseDetail(slug: string): Promise<CourseDetail | null
       title: fallback.title,
       description: fallback.description,
       duration: fallback.duration,
-      tags: fallback.tags,
+      duration_weeks: undefined,
       language: fallback.language,
+      published: true,
       modules: [
         {
           title: "Course outline",
@@ -117,15 +136,18 @@ export async function getCourseDetail(slug: string): Promise<CourseDetail | null
 
   if (error || !data) {
     console.warn("Unable to fetch course", error?.message);
-      const fallback = fallbackCourses.find((c) => c.slug === slug);
-      if (fallback) {
-        return {
+    const fallback = fallbackCourses.find((c) => c.slug === slug);
+    if (fallback) {
+      return {
         slug: fallback.slug,
         title: fallback.title,
         description: fallback.description,
         language: fallback.language,
-      modules: [
-        {
+        duration: fallback.duration,
+        duration_weeks: undefined,
+        published: true,
+        modules: [
+          {
             title: "Course outline",
             position: 1,
             lessons: fallback.lessons.map((lesson, idx) => ({
@@ -134,9 +156,9 @@ export async function getCourseDetail(slug: string): Promise<CourseDetail | null
               position: idx + 1,
               estimated_minutes: parseInt(lesson.duration, 10) || undefined,
             })),
-        },
-      ],
-    };
+          },
+        ],
+      };
     }
     return null;
   }
@@ -155,6 +177,7 @@ export async function getCourseDetail(slug: string): Promise<CourseDetail | null
     description: data.description,
     published: data.published,
     language: data.language,
+    duration_weeks: (data as CourseSummary).duration_weeks,
     modules: modules.sort((a, b) => (a.position || 0) - (b.position || 0)),
   };
 }

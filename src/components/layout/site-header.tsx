@@ -1,16 +1,18 @@
 import Link from "next/link";
-import { Github, Layers, Sparkles, Search } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
-import { SearchPanel } from "@/components/search/search-panel";
+import { getCurrentProfile } from "@/lib/queries";
 
-const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/courses", label: "Courses" },
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/admin", label: "Admin" },
-];
+export async function SiteHeader() {
+  const session = await getCurrentProfile();
+  const role = session?.roles?.[0] || session?.profile?.role || "student";
+  const navLinks = [
+    { href: "/", label: "Home", visible: true },
+    { href: "/courses", label: "Courses", visible: true },
+    { href: "/dashboard", label: role ? "My dashboard" : "Dashboard", visible: Boolean(session?.user) },
+    { href: "/admin", label: "Admin", visible: role === "admin" },
+  ].filter((link) => link.visible);
 
-export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 bg-gradient-to-b from-white/85 via-white/92 to-white/70 backdrop-blur-lg border-b border-[rgba(20,34,64,0.08)]">
       <div className="container flex flex-col gap-3 py-4">
@@ -21,21 +23,19 @@ export function SiteHeader() {
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.25em] text-[var(--muted)]">Waypoint</p>
-              <p className="text-xl font-bold text-[var(--ink)]">Learning Platform</p>
+              <p className="text-xl font-bold text-[var(--ink)]">Learning Pathway</p>
             </div>
           </Link>
 
-        <div className="flex flex-wrap items-center gap-3">
-            <span className="pill">
-              <Github className="h-4 w-4" />
-              GitHub-centered content
-            </span>
-            <Link href="https://supabase.com" className="pill" target="_blank" rel="noreferrer">
-              <Layers className="h-4 w-4" />
-              Supabase ready
+          <div className="flex flex-wrap items-center gap-3">
+            {session?.profile?.display_name ? (
+              <span className="rounded-full bg-[var(--accent-light)] px-3 py-1 text-sm font-semibold text-[var(--accent-deep)]">
+                {session.profile.display_name}
+              </span>
+            ) : null}
+            <Link href="/login" className="button-secondary">
+              {session?.user ? "Account" : "Sign in"}
             </Link>
-            <SearchPanel />
-            <Link href="/login" className="button-secondary">Sign in</Link>
           </div>
         </div>
 
@@ -54,13 +54,10 @@ export function SiteHeader() {
           </div>
           <div className="flex items-center gap-3 text-sm text-[var(--muted)]">
             <span className="rounded-full bg-[var(--accent-light)] px-3 py-1 text-[var(--accent-deep)] font-semibold">
-              Live cohorts weekly
+              Tuition-free pathway
             </span>
             <span className="rounded-full bg-white px-3 py-1 border border-[rgba(20,34,64,0.08)]">
-              Secure & RLS-ready
-            </span>
-            <span className="hidden sm:inline-flex items-center gap-1 text-[var(--muted)]">
-              <Search className="h-4 w-4" /> Global search
+              Checkpoints & capstone ready
             </span>
           </div>
         </nav>
