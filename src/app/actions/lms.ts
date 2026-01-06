@@ -64,7 +64,7 @@ export async function recordCheckIn(courseId: string, payload: Json) {
   return { ok: true, message: "Check-in recorded." };
 }
 
-export async function markLessonComplete(lessonId: string) {
+export async function markLessonComplete(lessonId: string, courseSlug?: string, lessonSlug?: string) {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return { ok: false, message: "Supabase is not configured." };
 
@@ -87,6 +87,12 @@ export async function markLessonComplete(lessonId: string) {
   }
 
   revalidatePath("/dashboard");
+  if (courseSlug) {
+    revalidatePath(`/courses/${courseSlug}`);
+  }
+  if (courseSlug && lessonSlug) {
+    revalidatePath(`/courses/${courseSlug}/lessons/${lessonSlug}`);
+  }
   return { ok: true, message: "Lesson marked complete." };
 }
 
