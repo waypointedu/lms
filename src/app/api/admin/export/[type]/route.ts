@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 import { getServiceRoleClient } from "@/lib/supabase";
 
@@ -7,18 +7,22 @@ function toCsv(rows: Record<string, unknown>[]) {
   const headers = Object.keys(rows[0]);
   const lines = [headers.join(",")];
   for (const row of rows) {
-    lines.push(headers.map((header) => JSON.stringify(row[header] ?? ""))?.join(","));
+    lines.push(headers.map((header) => JSON.stringify(row[header] ?? "")).join(","));
   }
   return lines.join("\n");
 }
 
-export async function GET(_: NextRequest, { params }: { params: { type: string } }) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ type: string }> }
+): Promise<Response> {
+  const { type } = await params;
+
   const supabase = getServiceRoleClient();
   if (!supabase) {
     return NextResponse.json({ error: "Service role not configured" }, { status: 501 });
   }
 
-  const type = params.type;
   let data: Record<string, unknown>[] = [];
 
   if (type === "enrollments") {
