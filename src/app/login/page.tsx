@@ -82,6 +82,16 @@ export default function LoginPage() {
           Enter your email and password to start learning.
         </p>
       </div>
+      <div className="card max-w-xl space-y-3 p-6">
+        <h2 className="text-xl font-semibold text-[var(--ink)]">How to get started</h2>
+        <p className="text-[var(--muted)]">Follow these quick steps to begin:</p>
+        <ol className="list-decimal space-y-2 pl-5 text-[var(--ink)]">
+          <li>Sign in with your email.</li>
+          <li>Open your course.</li>
+          <li>Press Continue.</li>
+          <li>Mark lessons done.</li>
+        </ol>
+      </div>
       <div className="card p-6 max-w-xl space-y-4">
         <form className="space-y-4" onSubmit={handleSubmit}>
           <label

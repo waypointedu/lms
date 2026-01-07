@@ -1,4 +1,4 @@
-export type LessonType = "lesson" | "lab" | "quiz" | "live";
+export type LessonType = "lesson" | "reflection" | "lab" | "live";
 
 export interface Lesson {
   title: string;
@@ -7,144 +7,106 @@ export interface Lesson {
   slug?: string;
 }
 
+export interface CheckpointPlan {
+  week: number;
+  title: string;
+  focus: string;
+  requirements: string[];
+}
+
 export interface Course {
   slug: string;
   title: string;
   description: string;
-  level: "Foundations" | "Intermediate" | "Advanced";
+  level: "Pathway";
   duration: string;
   language?: string;
-  repository: string;
-  tags: string[];
   lessons: Lesson[];
   outcomes: string[];
+  checkpoints: CheckpointPlan[];
 }
 
 export const courses: Course[] = [
   {
-    slug: "waypoint-foundations",
-    title: "Waypoint Foundations",
+    slug: "year-one-biblical-formation",
+    title: "Year One / Certificate in Biblical Formation",
     description:
-      "Build confidence with GitHub-centered authoring, Next.js foundations, and Supabase basics for auth, storage, and data access.",
-    level: "Foundations",
-    duration: "2 weeks",
+      "A tuition-free learning pathway through Scripture, doctrine, culture, and mission with checkpoints and a capstone conversation.",
+    level: "Pathway",
+    duration: "32 weeks",
     language: "en",
-    repository: "waypointedu/lms",
-    tags: ["Next.js", "Supabase", "GitHub"],
     lessons: [
-      { title: "Design tokens & Waypoint UI kit", duration: "40m", type: "lesson", slug: "design-system" },
-      { title: "Authoring courses in Markdown/MDX", duration: "30m", type: "lesson", slug: "content-repo" },
-      { title: "Repository workflows & CI gates", duration: "35m", type: "lab", slug: "repo-workflows" },
-      { title: "Deployments with Vercel & previews", duration: "45m", type: "lesson", slug: "deployments" },
-      { title: "Quiz: GitHub-centered workflows", duration: "15m", type: "quiz", slug: "workflows-quiz" },
+      { title: "Living into the biblical story", duration: "25m", type: "lesson", slug: "scripture-story" },
+      { title: "Reading the Gospels in community", duration: "22m", type: "lesson", slug: "gospels-community" },
+      { title: "Core doctrines for Year One", duration: "28m", type: "lesson", slug: "doctrine-basics" },
+      { title: "Prayer, Sabbath, and community rhythms", duration: "24m", type: "reflection", slug: "formation-rhythms" },
+      { title: "Listening to culture with wisdom", duration: "26m", type: "lab", slug: "culture-listening" },
+      { title: "Everyday mission experiments", duration: "30m", type: "lab", slug: "mission-practice" },
+      { title: "Preparing for your capstone conversation", duration: "18m", type: "lesson", slug: "capstone-prep" },
+      { title: "Sharing your story and testimony", duration: "18m", type: "lesson", slug: "capstone-testimony" },
+    ],
+    checkpoints: [
+      {
+        week: 1,
+        title: "Story of Scripture",
+        focus: "Genesis 1–3 reflection + community Gospel reading",
+        requirements: ["Submit a short reflection", "Name one question for office hours"],
+      },
+      {
+        week: 4,
+        title: "Practicing Sabbath",
+        focus: "Sabbath journal + prayer rhythm plan",
+        requirements: ["Share your Sabbath experience", "Post your weekly prayer rhythm"],
+      },
+      {
+        week: 8,
+        title: "Culture listening lab",
+        focus: "Neighbor interview and insights",
+        requirements: ["Upload a 2-minute voice note", "Post two quotes you heard"],
+      },
+      {
+        week: 12,
+        title: "Capstone readiness",
+        focus: "Schedule and prep for the capstone conversation",
+        requirements: ["Request a capstone time", "Attach your testimony outline"],
+      },
     ],
     outcomes: [
-      "Set up Supabase auth, storage, and RLS policies",
-      "Publish content directly from GitHub using Markdown and MDX",
-      "Ship a responsive, Waypoint-branded LMS shell on Vercel",
-    ],
-  },
-  {
-    slug: "live-learning-tracks",
-    title: "Live Learning Tracks",
-    description:
-      "Plan and run live cohorts with session templates, breakout rooms, and submission reviews tied to Supabase storage.",
-    level: "Intermediate",
-    duration: "3 weeks",
-    language: "en",
-    repository: "waypointedu/lms",
-    tags: ["Live", "Cohorts", "Analytics"],
-    lessons: [
-      { title: "Session playbooks & facilitator toolkit", duration: "30m", type: "lesson", slug: "playbooks" },
-      { title: "Check-ins and attendance tracking", duration: "25m", type: "lab", slug: "check-ins" },
-      { title: "Media uploads to Supabase storage", duration: "20m", type: "lab", slug: "uploads" },
-      { title: "Quiz: Learner analytics", duration: "15m", type: "quiz", slug: "analytics-quiz" },
-      { title: "Live session practicum", duration: "50m", type: "live", slug: "live-practicum" },
-    ],
-    outcomes: [
-      "Design weekly live sessions with reusable agendas",
-      "Streamline learner check-ins and attendance",
-      "Collect submissions and store assets securely",
-    ],
-  },
-  {
-    slug: "advanced-insights",
-    title: "Advanced Insights & Automation",
-    description:
-      "Scale your academy with automation hooks, Stripe entitlements, and GitHub Actions for content QA and deployments.",
-    level: "Advanced",
-    duration: "4 weeks",
-    language: "en",
-    repository: "waypointedu/lms",
-    tags: ["Stripe", "Automation", "QA"],
-    lessons: [
-      { title: "Entitlement gating with Stripe", duration: "35m", type: "lesson", slug: "stripe-entitlements" },
-      { title: "QA pipelines for MDX content", duration: "25m", type: "lab", slug: "qa-pipelines" },
-      { title: "Quiz: security & governance", duration: "15m", type: "quiz", slug: "security-quiz" },
-      { title: "Release automation with GitHub Actions", duration: "40m", type: "lesson", slug: "release-automation" },
-      { title: "Live capstone review", duration: "45m", type: "live", slug: "capstone-review" },
-    ],
-    outcomes: [
-      "Automate enrollments with Stripe webhooks",
-      "Ship content changes safely via pull requests",
-      "Monitor platform health with built-in analytics",
-    ],
-  },
-  {
-    slug: "fundamentos-waypoint-es",
-    title: "Fundamentos Waypoint (ES)",
-    description: "Versión en español del curso base: tokens de diseño, contenido en GitHub y Supabase listo para cohorts.",
-    level: "Foundations",
-    duration: "2 semanas",
-    language: "es",
-    repository: "waypointedu/lms",
-    tags: ["Next.js", "Supabase", "Contenido"],
-    lessons: [
-      { title: "Sistema de diseño Waypoint", duration: "35m", type: "lesson", slug: "diseno" },
-      { title: "MDX y flujos de GitHub", duration: "30m", type: "lesson", slug: "mdx-github" },
-      { title: "Auth y almacenamiento en Supabase", duration: "35m", type: "lesson", slug: "supabase" },
-    ],
-    outcomes: [
-      "Aplicar tokens Waypoint en Tailwind",
-      "Publicar contenido MDX desde GitHub",
-      "Configurar Supabase para cohorts con RLS",
+      "Read Scripture in community and connect it to daily life.",
+      "Adopt weekly rhythms of prayer, Sabbath, and hospitality.",
+      "Listen to culture with humility and design simple mission experiments.",
+      "Share a capstone testimony that weaves Scripture, doctrine, and practice.",
     ],
   },
 ];
 
 export const liveSessions = [
   {
-    title: "Weekly Instructor Standup",
-    facilitator: "Jordan Kim",
-    cadence: "Mondays @ 10:00 AM PT",
-    focus: "Roadmap, blockers, and GitHub issue triage",
+    title: "Weekly cohort circle",
+    facilitator: "Waypoint Faculty",
+    cadence: "Weekly",
+    focus: "Guided discussion on the current checkpoint",
   },
   {
-    title: "Learner Office Hours",
-    facilitator: "Samira Patel",
-    cadence: "Wednesdays @ 12:00 PM PT",
-    focus: "Code reviews, Supabase troubleshooting, and quiz prep",
-  },
-  {
-    title: "Launch Readiness Review",
-    facilitator: "Waypoint Crew",
-    cadence: "Fridays @ 9:00 AM PT",
-    focus: "Release checklist, observability, and content QA",
+    title: "Faculty office hours",
+    facilitator: "Reviewer pool",
+    cadence: "Twice weekly",
+    focus: "Questions about readings, checkpoints, and capstone prep",
   },
 ];
 
 export const checkInPrompts = [
   {
-    title: "Daily check-in",
-    prompt: "What did you ship yesterday, and what’s the next GitHub issue you’re closing today?",
+    title: "Weekly reflection",
+    prompt: "What did you practice this week? Where did you sense God’s presence?",
   },
   {
-    title: "Confidence pulse",
-    prompt: "Rate your confidence with Supabase auth + storage and share one blocker for today’s session.",
+    title: "Checkpoint prep",
+    prompt: "What do you need to finish before the next checkpoint due date?",
   },
   {
-    title: "Reflection",
-    prompt: "Link a PR you’re proud of this week and describe the feedback you incorporated.",
+    title: "Capstone pulse",
+    prompt: "How ready do you feel for your capstone conversation? What support would help?",
   },
 ];
 
@@ -152,11 +114,10 @@ export interface DashboardProgress {
   course: string;
   completed: number;
   total: number;
-  status: "on-track" | "at-risk" | "off-track";
+  status: "on-track" | "behind" | "ready";
+  nextCheckpoint?: string;
 }
 
 export const dashboardProgress: DashboardProgress[] = [
-  { course: "Waypoint Foundations", completed: 6, total: 9, status: "on-track" },
-  { course: "Live Learning Tracks", completed: 2, total: 8, status: "at-risk" },
-  { course: "Advanced Insights & Automation", completed: 1, total: 7, status: "off-track" },
+  { course: "Year One / Certificate in Biblical Formation", completed: 3, total: 8, status: "on-track", nextCheckpoint: "Week 4: Practicing Sabbath" },
 ];

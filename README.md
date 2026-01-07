@@ -1,6 +1,6 @@
-# Waypoint LMS (GitHub-centered, Supabase-native)
+# Waypoint Learning Pathway (Supabase + MDX)
 
-Waypoint LMS is a production-grade learning platform built with Next.js App Router, Tailwind CSS (v4), and Supabase. Content lives in GitHub as Markdown/MDX, while auth, data, and storage run through Supabase.
+Waypoint is a tuition-free learning pathway for the Waypoint Institute. Year One moves through Scripture, doctrine, culture, and mission with weekly checkpoints and a final capstone conversation. Content lives in GitHub as Markdown/MDX, while auth, data, and storage run through Supabase.
 
 ## Tech stack
 
@@ -20,10 +20,10 @@ npm run dev
 
 The primary pages are:
 
-- `/` – marketing hero, course cards, live session highlights, check-in form (server action ready)
-- `/courses` – renders MDX/Markdown content from the repo with language filtering (EN/ES)
-- `/dashboard` – learner progress and live session cards
-- `/admin` – deployment checklist and Supabase status
+- `/` – Waypoint Learning Pathway hero, Year One course card, live support highlights, check-in form
+- `/courses` – pathway outline rendered from MDX with language filtering
+- `/dashboard` – role-aware dashboards for students, faculty, and admins
+- `/admin` – admin toolkit (hidden unless you have the admin role)
 - `/login` – Supabase magic-link auth
 - `/verify/[code]` – public certificate verification page
 
@@ -47,15 +47,15 @@ NEXT_PUBLIC_WAYPOINT_SITE_URL="http://localhost:3000"
 
 1. Create a Supabase project and enable email auth (magic links) with optional passwords.
 2. Buckets: `course-media`, `submissions`, and (optional) `avatars`.
-3. Apply SQL migrations in `supabase/migrations` (profiles, courses, modules, lessons, enrollments, progress, check-ins, quizzes, live sessions, attendance). RLS is included.
-4. Seed with `supabase/seed.sql` to create the Waypoint Foundations course, modules, lessons, and sample live sessions.
+3. Apply SQL migrations in `supabase/migrations` (profiles, roles/profile_roles, courses/modules/lessons with translation fields, enrollments, lesson_progress, checkins, checkpoints + checkpoint_progress, capstones + capstone_schedules, quizzes, live sessions, attendance). RLS is included.
+4. Seed with `supabase/seed.sql` to create the Year One / Certificate in Biblical Formation course, modules, lessons, checkpoints, and sample live sessions.
 5. Configure SMTP (SendGrid/Mailgun/etc.) in Supabase for production email delivery.
 6. Add the environment variables above to Vercel and your local `.env.local`.
 
 ## Search & bilingual support
 
-- Global search (header) queries courses/lessons via `/api/search` using Supabase when configured, otherwise falls back to in-repo content.
-- Course catalog supports language filter (EN/ES). MDX frontmatter includes `language` to keep listings consistent.
+- The search panel component remains available under `src/components/search`, but the header hides it for students until a real search index is configured.
+- Course catalog supports language filter; Year One content is currently English-only, but MDX frontmatter still carries language metadata.
 
 ## GitHub-centered content
 
@@ -65,8 +65,9 @@ NEXT_PUBLIC_WAYPOINT_SITE_URL="http://localhost:3000"
 
 ## Data model
 
-- SQL migrations live under `supabase/migrations` and include RLS policies for roles: `admin`, `instructor`, `student`, and `applicant`.
-- Seed data is in `supabase/seed.sql` (Waypoint Foundations course, modules, lessons, live sessions).
+- SQL migrations live under `supabase/migrations` and include RLS policies for roles: `admin`, `faculty`, `student`, and `applicant` (legacy `instructor` stays supported).
+- New tables: `roles`, `profile_roles`, `checkpoints`, `checkpoint_progress`, `capstones`, and `capstone_schedules` alongside courses/modules/lessons/enrollments/lesson_progress.
+- Seed data is in `supabase/seed.sql` (Year One / Certificate in Biblical Formation, checkpoints, and live sessions).
 - Type definitions for Supabase are in `src/types/supabase.ts` and used across server/client helpers.
 - Additional schema: certificates (verification codes), audit_events, and lesson_index scaffolding for search.
 
