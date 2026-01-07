@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 
 import { getSupabaseServerClient } from "@/lib/supabase-server";
@@ -126,7 +127,7 @@ export async function issueCertificate(courseId: string, userId: string) {
   const service = getServiceRoleClient();
   if (!service) return { ok: false, message: "Service role not configured." };
 
-  const verification_code = crypto.randomUUID();
+  const verification_code = randomUUID();
   const { error } = await service.from("certificates").insert({
     course_id: courseId,
     user_id: userId,

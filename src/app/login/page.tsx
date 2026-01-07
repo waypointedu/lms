@@ -1,21 +1,28 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { Github } from "lucide-react";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 export default function LoginPage() {
   const supabase = getSupabaseBrowserClient();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [redirectUrl, setRedirectUrl] = useState(
+    process.env.NEXT_PUBLIC_WAYPOINT_SITE_URL || "",
+  );
   const [isPending, startTransition] = useTransition();
 
   const missingSupabaseMessage =
-    "Supabase is not configured. Add env vars to enable login.";
-  const redirectUrl =
-    process.env.NEXT_PUBLIC_WAYPOINT_SITE_URL || window.location.origin;
+    "Sign-in is not ready yet. Please try again later.";
+
+  useEffect(() => {
+    setRedirectUrl(
+      process.env.NEXT_PUBLIC_WAYPOINT_SITE_URL || window.location.origin,
+    );
+  }, []);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -25,11 +32,9 @@ export default function LoginPage() {
     }
 
     startTransition(async () => {
-      const { error } = await supabase.auth.signInWithOtp({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
-        options: {
-          emailRedirectTo: `${redirectUrl}/dashboard`,
-        },
+        password,
       });
 
       if (error) {
@@ -37,22 +42,27 @@ export default function LoginPage() {
         return;
       }
 
-      setMessage("Check your email for the magic link.");
+      const destination = redirectUrl ? `${redirectUrl}/dashboard` : "/dashboard";
+      window.location.href = destination;
     });
   };
 
-  const handleGithubLogin = () => {
+  const handleResetPassword = () => {
     if (!supabase) {
       setMessage(missingSupabaseMessage);
       return;
     }
 
     startTransition(async () => {
-      setMessage(null);
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "github",
+      if (!email) {
+        setMessage("Enter your email first.");
+        return;
+      }
+
+      const destination = redirectUrl ? `${redirectUrl}/reset` : "/reset";
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
         options: {
-          redirectTo: `${redirectUrl}/dashboard`,
+          redirectTo: destination,
         },
       });
 
@@ -61,22 +71,17 @@ export default function LoginPage() {
         return;
       }
 
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        setMessage("Redirecting to GitHub...");
-      }
+      setMessage("Check your email for a reset link.");
     });
   };
 
   return (
     <main className="container py-16 space-y-8">
       <div className="max-w-xl space-y-3">
-        <p className="pill">Supabase auth</p>
-        <h1 className="text-4xl font-bold">Sign in to Waypoint LMS</h1>
+        <p className="pill">Welcome</p>
+        <h1 className="text-4xl font-bold">Sign in</h1>
         <p className="text-[var(--muted)]">
-          Use email magic links or GitHub SSO. After signing in, you will be
-          redirected to the dashboard and your profile will be provisioned.
+          Enter your email and password to start learning.
         </p>
       </div>
       <div className="card p-6 max-w-xl space-y-4">
@@ -96,30 +101,36 @@ export default function LoginPage() {
             className="w-full rounded-xl border border-[rgba(20,34,64,0.12)] bg-white px-3 py-2 focus:border-[var(--accent)] focus:outline-none"
             placeholder="you@example.com"
           />
+          <label
+            className="block text-sm font-semibold text-[var(--ink)]"
+            htmlFor="password"
+          >
+            Password
+          </label>
+          <input
+            id="password"
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded-xl border border-[rgba(20,34,64,0.12)] bg-white px-3 py-2 focus:border-[var(--accent)] focus:outline-none"
+            placeholder="Enter your password"
+          />
           <button
             type="submit"
             className="button-primary w-full"
             disabled={isPending}
           >
-            {isPending ? "Sending magic link..." : "Send magic link"}
+            {isPending ? "Signing in..." : "Sign in"}
           </button>
         </form>
-        <div className="flex items-center gap-2 text-[var(--muted)]">
-          <div className="h-px flex-1 bg-[rgba(20,34,64,0.12)]" />
-          <span className="text-xs font-semibold uppercase tracking-[0.2em]">
-            or
-          </span>
-          <div className="h-px flex-1 bg-[rgba(20,34,64,0.12)]" />
-        </div>
-
         <button
           type="button"
-          className="button-secondary w-full flex items-center justify-center gap-2"
-          onClick={handleGithubLogin}
+          className="button-secondary w-full"
+          onClick={handleResetPassword}
           disabled={isPending}
         >
-          <Github className="h-4 w-4" />
-          {isPending ? "Connecting to GitHub..." : "Continue with GitHub"}
+          {isPending ? "Sending email..." : "Reset password"}
         </button>
 
         {message ? (
