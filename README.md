@@ -1,6 +1,6 @@
 # Waypoint Learning Pathway (Supabase + MDX)
 
-Waypoint is a tuition-free learning pathway for the Waypoint Institute. Year One moves through Scripture, doctrine, culture, and mission with weekly checkpoints and a final capstone conversation. Content lives in GitHub as Markdown/MDX, while auth, data, and storage run through Supabase.
+Waypoint is a guided learning pathway for the Waypoint Institute. Year One moves through Scripture, doctrine, culture, and mission with weekly checkpoints and a final capstone conversation. Content lives in GitHub as Markdown/MDX, while auth, data, and storage run through Supabase.
 
 ## Tech stack
 

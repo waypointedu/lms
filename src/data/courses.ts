@@ -31,7 +31,7 @@ export const courses: Course[] = [
     slug: "year-one-biblical-formation",
     title: "Year One / Certificate in Biblical Formation",
     description:
-      "A tuition-free learning pathway through Scripture, doctrine, culture, and mission with checkpoints and a capstone conversation.",
+      "A guided learning pathway through Scripture, doctrine, culture, and mission with checkpoints and a capstone conversation.",
     level: "Pathway",
     duration: "32 weeks",
     language: "en",

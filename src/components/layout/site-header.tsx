@@ -5,12 +5,14 @@ import { getCurrentProfile } from "@/lib/queries";
 
 export async function SiteHeader() {
   const session = await getCurrentProfile();
-  const role = session?.roles?.[0] || session?.profile?.role || "student";
+  const roles = session?.roles || [];
+  const profileRole = session?.profile?.role;
+  const isAdmin = roles.includes("admin") || profileRole === "admin";
   const navLinks = [
     { href: "/", label: "Home", visible: true },
     { href: "/courses", label: "Courses", visible: true },
-    { href: "/dashboard", label: role ? "My dashboard" : "Dashboard", visible: Boolean(session?.user) },
-    { href: "/admin", label: "Admin", visible: role === "admin" },
+    { href: "/dashboard", label: "My dashboard", visible: Boolean(session?.user) },
+    { href: "/admin", label: "Admin", visible: isAdmin },
   ].filter((link) => link.visible);
 
   return (
@@ -33,13 +35,13 @@ export async function SiteHeader() {
                 {session.profile.display_name}
               </span>
             ) : null}
-            <Link href="/login" className="button-secondary">
+            <Link href={session?.user ? "/profile" : "/login"} className="button-secondary">
               {session?.user ? "Account" : "Sign in"}
             </Link>
           </div>
         </div>
 
-        <nav className="glass-panel flex items-center justify-between px-4 py-3">
+        <nav className="glass-panel flex items-center px-4 py-3">
           <div className="flex items-center gap-8 text-[var(--muted)] font-semibold">
             {navLinks.map((link) => (
               <Link
@@ -51,14 +53,6 @@ export async function SiteHeader() {
                 <span className="absolute left-0 -bottom-1 h-[2px] w-full scale-x-0 transform bg-[var(--accent)] transition-transform duration-300 ease-in-out group-hover:scale-x-100" />
               </Link>
             ))}
-          </div>
-          <div className="flex items-center gap-3 text-sm text-[var(--muted)]">
-            <span className="rounded-full bg-[var(--accent-light)] px-3 py-1 text-[var(--accent-deep)] font-semibold">
-              Tuition-free pathway
-            </span>
-            <span className="rounded-full bg-white px-3 py-1 border border-[rgba(20,34,64,0.08)]">
-              Checkpoints & capstone ready
-            </span>
           </div>
         </nav>
       </div>

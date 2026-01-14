@@ -429,12 +429,32 @@ export interface Database {
         Row: {
           id: string;
           display_name: string | null;
+          first_name: string | null;
+          last_name: string | null;
+          email: string | null;
+          phone: string | null;
+          mailing_address_line1: string | null;
+          mailing_address_line2: string | null;
+          mailing_city: string | null;
+          mailing_state: string | null;
+          mailing_postal_code: string | null;
+          mailing_country: string | null;
           role: "admin" | "instructor" | "faculty" | "student" | "applicant";
           created_at: string | null;
         };
         Insert: {
           id: string;
           display_name?: string | null;
+          first_name?: string | null;
+          last_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          mailing_address_line1?: string | null;
+          mailing_address_line2?: string | null;
+          mailing_city?: string | null;
+          mailing_state?: string | null;
+          mailing_postal_code?: string | null;
+          mailing_country?: string | null;
           role?: "admin" | "instructor" | "faculty" | "student" | "applicant";
           created_at?: string | null;
         };

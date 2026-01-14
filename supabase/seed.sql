@@ -5,7 +5,7 @@ with course as (
     'year-one-biblical-formation',
     'Year One / Certificate in Biblical Formation',
     'Año Uno / Certificado en Formación Bíblica',
-    'A tuition-free pathway through Scripture, doctrine, culture, and mission with weekly checkpoints and a final capstone conversation.',
+    'A guided pathway through Scripture, doctrine, culture, and mission with weekly checkpoints and a final capstone conversation.',
     'en',
     true,
     32,

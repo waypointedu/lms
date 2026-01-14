@@ -23,7 +23,15 @@ export async function assignRole(userId: string, role: AssignableRole) {
   if (!user) return { ok: false, message: "Sign in to assign roles." };
 
   const { data: adminProfile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (adminProfile?.role !== "admin") {
+  const { data: adminRoles } = await supabase
+    .from("profile_roles")
+    .select("roles!inner(slug)")
+    .eq("profile_id", user.id);
+  const roleSlugs =
+    adminRoles
+      ?.map((row: { roles?: { slug?: string | null } | null }) => row.roles?.slug)
+      .filter((slug): slug is string => Boolean(slug)) || [];
+  if (adminProfile?.role !== "admin" && !roleSlugs.includes("admin")) {
     return { ok: false, message: "Only admins can change roles." };
   }
 

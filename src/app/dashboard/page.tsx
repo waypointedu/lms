@@ -114,8 +114,9 @@ export default async function DashboardPage() {
       });
     }
 
-    const derivedRole = (session.roles?.[0] || session.profile.role || "").toLowerCase();
-    if (derivedRole === "faculty" || derivedRole === "admin") {
+    const hasAdminRole = (session.roles || []).includes("admin") || session.profile.role === "admin";
+    const hasFacultyRole = (session.roles || []).includes("faculty") || session.profile.role === "faculty";
+    if (hasAdminRole || hasFacultyRole) {
       const { data: rosterData } = await supabase
         .from("enrollments")
         .select("id, status, cohort_label, courses(title, slug), profiles(display_name)")
@@ -128,9 +129,12 @@ export default async function DashboardPage() {
     active: roster.length || progressCards.length,
   };
 
-  const derivedRole = (session?.roles?.[0] || session?.profile?.role || "student").toLowerCase();
-  const isStaff = derivedRole === "faculty" || derivedRole === "admin";
-  const isAdmin = derivedRole === "admin";
+  const roles = session?.roles || [];
+  const profileRole = session?.profile?.role || "student";
+  const hasAdmin = roles.includes("admin") || profileRole === "admin";
+  const hasFaculty = roles.includes("faculty") || profileRole === "faculty";
+  const isStaff = hasAdmin || hasFaculty;
+  const isAdmin = hasAdmin;
   const completedLessons = progressCards.reduce((total, card) => total + card.completed, 0);
   const totalLessons = progressCards.reduce((total, card) => total + card.total, 0);
   const overallCompletion = totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0;
@@ -148,7 +152,7 @@ export default async function DashboardPage() {
                   <p className="pill">{isAdmin ? "Admin dashboard" : "Faculty dashboard"}</p>
                   <h1 className="text-4xl font-bold mt-3">Course management</h1>
                   <p className="text-[var(--muted)] max-w-2xl">
-                    Build courses, upload media, and keep the pathway organized. Students only see the courses they are enrolled in.
+                    Organize courses and track learner progress.
                   </p>
                 </div>
                 <div className="flex gap-3">
@@ -169,7 +173,7 @@ export default async function DashboardPage() {
                 <div className="card p-5 space-y-2">
                   <p className="text-sm font-semibold text-[var(--accent-deep)]">Course setup</p>
                   <p className="text-[var(--muted)] text-sm">
-                    Use the course builder to define weeks, lessons, assignments, and uploads.
+                    Define weeks, lessons, and uploads.
                   </p>
                   <Link href="/admin" className="button-secondary w-fit">
                     Start a course
@@ -222,7 +226,7 @@ export default async function DashboardPage() {
                   <p className="pill">Learner dashboard</p>
                   <h1 className="text-4xl font-bold mt-3">Your pathway</h1>
                   <p className="text-[var(--muted)] max-w-2xl">
-                    Everything you need for your program in one place. Your grades, current course, and next steps appear here.
+                    Everything you need for your program in one place.
                   </p>
                 </div>
                 <div className="flex gap-3">
@@ -240,7 +244,7 @@ export default async function DashboardPage() {
               <div className="card p-6 space-y-2">
                 <p className="text-xs font-semibold text-[var(--muted)]">Program progress</p>
                 <p className="text-3xl font-bold">{overallCompletion}%</p>
-                <p className="text-sm text-[var(--muted)]">Updates as you complete lessons.</p>
+                <p className="text-sm text-[var(--muted)]">Updates as lessons are completed.</p>
               </div>
               <div className="card p-6 space-y-2">
                 <p className="text-xs font-semibold text-[var(--muted)]">Current course</p>
@@ -250,7 +254,7 @@ export default async function DashboardPage() {
               <div className="card p-6 space-y-2">
                 <p className="text-xs font-semibold text-[var(--muted)]">Projected graduation</p>
                 <p className="text-lg font-semibold">Not available yet</p>
-                <p className="text-sm text-[var(--muted)]">Set course durations to calculate this automatically.</p>
+                <p className="text-sm text-[var(--muted)]">Calculated when durations are set.</p>
               </div>
             </section>
 
@@ -258,7 +262,7 @@ export default async function DashboardPage() {
               <SectionHeader
                 eyebrow="Pathway"
                 title="All courses in your program"
-                description="Your full pathway appears here. Current course is highlighted when available."
+                description="Your pathway appears here when enrolled."
               />
               {session?.user ? (
                 progressCards.length ? (
