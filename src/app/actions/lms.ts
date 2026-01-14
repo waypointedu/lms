@@ -3,6 +3,7 @@
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 
+import { getCurrentProfile } from "@/lib/queries";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { getServiceRoleClient } from "@/lib/supabase";
 import { startOfWeek } from "@/lib/date-utils";
@@ -210,6 +211,103 @@ export async function signOut() {
   await supabase.auth.signOut();
   revalidatePath("/");
   revalidatePath("/dashboard");
+}
+
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+
+type CourseTemplateState = { ok: boolean; message: string };
+
+const templateComponents = [
+  { value: "overview", label: "Overview" },
+  { value: "lesson", label: "Lesson" },
+  { value: "discussion", label: "Discussion" },
+  { value: "quiz", label: "Quiz" },
+  { value: "assignment", label: "Assignment" },
+] as const;
+
+export async function createCourseTemplate(
+  _prevState: CourseTemplateState,
+  formData: FormData,
+): Promise<CourseTemplateState> {
+  "use server";
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return { ok: false, message: "Supabase is not configured." };
+
+  const session = await getCurrentProfile();
+  if (!session?.user) return { ok: false, message: "Sign in to create a course." };
+
+  const isAdmin = session.roles.includes("admin") || session.profile.role === "admin";
+  if (!isAdmin) return { ok: false, message: "Only admins can create course templates." };
+
+  const title = String(formData.get("courseTitle") || "").trim();
+  const description = String(formData.get("courseDescription") || "").trim();
+  const rawComponents = formData.getAll("components").map((value) => String(value));
+  const components = templateComponents.filter((component) => rawComponents.includes(component.value));
+
+  if (!title) return { ok: false, message: "Add a course title to continue." };
+  if (!components.length) return { ok: false, message: "Select at least one component." };
+
+  const slug = `${slugify(title)}-${randomUUID().slice(0, 6)}`;
+
+  const { data: course, error: courseError } = await supabase
+    .from("courses")
+    .insert({
+      slug,
+      title,
+      description: description || null,
+      duration_weeks: 16,
+      published: false,
+    })
+    .select("id")
+    .single();
+
+  if (courseError || !course) {
+    console.error("Unable to create course", courseError?.message);
+    return { ok: false, message: "Unable to create the course template." };
+  }
+
+  for (let week = 1; week <= 16; week += 1) {
+    const { data: moduleRow, error: moduleError } = await supabase
+      .from("modules")
+      .insert({
+        course_id: course.id,
+        title: `Week ${week}`,
+        position: week,
+      })
+      .select("id")
+      .single();
+
+    if (moduleError || !moduleRow) {
+      console.error("Unable to create module", moduleError?.message);
+      return { ok: false, message: "Course created, but modules could not be added." };
+    }
+
+    const lessons = components.map((component, index) => ({
+      module_id: moduleRow.id,
+      title: component.label,
+      slug: `week-${week}-${component.value}`,
+      position: index + 1,
+      published: false,
+    }));
+
+    const { error: lessonsError } = await supabase.from("lessons").insert(lessons);
+    if (lessonsError) {
+      console.error("Unable to create lessons", lessonsError.message);
+      return { ok: false, message: "Course created, but lessons could not be added." };
+    }
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+  return {
+    ok: true,
+    message: `Created "${title}" with 16 weeks and ${components.length} components per week.`,
+  };
 }
 
 async function logAudit(action: string, target: string | null, actor: string | null) {
