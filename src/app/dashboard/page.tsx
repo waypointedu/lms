@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -41,6 +42,10 @@ function StudentCourseCard({ course }: { course: CourseProgress }) {
 export default async function DashboardPage() {
   const session = await getCurrentProfile();
   const supabase = await getSupabaseServerClient();
+
+  if (!session?.user) {
+    redirect("/login");
+  }
 
   let progressCards: CourseProgress[] = [];
   let roster: EnrollmentRosterRow[] = [];

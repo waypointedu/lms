@@ -1,36 +1,52 @@
-import { CheckCircle2, CloudUpload, GitBranch, ShieldCheck, ShieldQuestion, Sparkles } from "lucide-react";
-import Link from "next/link";
-
+import { ClipboardList } from "lucide-react";
+import { CourseBuilder } from "@/components/admin/course-builder";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SectionHeader } from "@/components/ui/section-header";
-import { issueCertificate } from "@/app/actions/lms";
+import { getSupabaseServerClient } from "@/lib/supabase-server";
 
-const adminTools = [
-  {
-    title: "Auth & enrollments",
-    description: "Supabase auth (magic link + password) with RLS-ready Postgres tables for enrollments and roles.",
-    badge: "Auth",
-    icon: <ShieldCheck className="h-5 w-5" />,
-  },
-  {
-    title: "Storage & submissions",
-    description: "Buckets for course-media and submissions with folder-per-learner structure and server action stubs.",
-    badge: "Storage",
-    icon: <CloudUpload className="h-5 w-5" />,
-  },
-  {
-    title: "Content pipeline",
-    description: "GitHub-first workflow for Markdown/MDX with space for CI, previews, and external content repos.",
-    badge: "Content",
-    icon: <GitBranch className="h-5 w-5" />,
-  },
-];
+export default async function AdminPage() {
+  const supabase = await getSupabaseServerClient();
+  const { data: courses } = supabase
+    ? await supabase.from("courses").select("id, title").order("title", { ascending: true })
+    : { data: [] };
+  const { data: pathwaysData } = supabase
+    ? await supabase.from("courses").select("pathway").not("pathway", "is", null)
+    : { data: [] };
+  const basePathways =
+    (pathwaysData || [])
+      .map((row: { pathway: string | null }) => row.pathway)
+      .filter((pathway): pathway is string => Boolean(pathway)) || [];
+  const pathways = Array.from(new Set(basePathways)).sort((a, b) => a.localeCompare(b));
 
-export default function AdminPage() {
-  const supabaseConfigured = Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  );
+  let instructors: Array<{ id: string; display_name: string | null; email: string | null; role: string | null }> = [];
+  if (supabase) {
+    const { data: profileInstructors } = await supabase
+      .from("profiles")
+      .select("id, display_name, email, role")
+      .in("role", ["admin", "instructor"]);
+
+    const { data: roleAssignments } = await supabase
+      .from("profile_roles")
+      .select("profile_id, roles!inner(slug)")
+      .in("roles.slug", ["admin", "instructor"]);
+    const roleProfileIds =
+      roleAssignments
+        ?.map((row: { profile_id: string }) => row.profile_id)
+        .filter(Boolean) || [];
+    const { data: roleProfiles } = roleProfileIds.length
+      ? await supabase.from("profiles").select("id, display_name, email, role").in("id", roleProfileIds)
+      : { data: [] };
+
+    const merged = new Map<string, { id: string; display_name: string | null; email: string | null; role: string | null }>();
+    (profileInstructors || []).forEach((profile) => merged.set(profile.id, profile));
+    (roleProfiles || []).forEach((profile) => merged.set(profile.id, profile));
+    instructors = Array.from(merged.values()).sort((a, b) =>
+      (a.display_name || a.email || "").localeCompare(b.display_name || b.email || ""),
+    );
+  }
+
+  const courseOptions = (courses || []).map((course) => ({ id: course.id, title: course.title }));
 
   return (
     <div>
@@ -38,120 +54,25 @@ export default function AdminPage() {
       <main className="container space-y-14 py-12">
         <SectionHeader
           eyebrow="Admin toolkit"
-          title="Operate Waypoint LMS with GitHub + Supabase"
-          description="Wire Supabase credentials, configure storage buckets, and keep content in GitHub. The UI below lists the core operational levers for an MVP deployment."
+          title="Course builder"
+          description="Create a course and begin building the learner-facing experience."
         />
 
-        <div className="grid gap-6 md:grid-cols-3">
-          {adminTools.map((tool) => (
-            <div key={tool.title} className="card p-6 space-y-3">
-              <div className="flex items-center gap-3 text-[var(--accent-deep)]">
-                <div className="rounded-2xl bg-[var(--accent-light)] p-2">{tool.icon}</div>
-                <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold border border-[rgba(20,34,64,0.08)]">
-                  {tool.badge}
-                </span>
-              </div>
-              <h3 className="text-xl font-bold">{tool.title}</h3>
-              <p className="text-[var(--muted)]">{tool.description}</p>
-              <Link href="/api/status" className="text-[var(--accent-deep)] font-semibold">
-                View API status
-              </Link>
-            </div>
-          ))}
-        </div>
-
-        <div className="grid gap-8 md:grid-cols-[1.1fr_0.9fr] items-start">
-          <div className="card p-6 space-y-3">
-            <div className="flex items-center gap-3 text-[var(--accent-deep)]">
-              <Sparkles className="h-5 w-5" />
-              <h3 className="text-lg font-semibold">Deployment checklist</h3>
-            </div>
-            <ul className="space-y-2 text-[var(--muted)]">
-              <li>Configure environment variables in Vercel for Supabase URL and keys.</li>
-              <li>Create storage buckets: <strong>course-media</strong>, <strong>submissions</strong>, and optional <strong>avatars</strong>.</li>
-              <li>Enable RLS and policies for check-ins, progress, and submissions tables.</li>
-              <li>Connect a GitHub content repo or keep MDX locally for the MVP.</li>
-              <li>Protect main with CI for linting, type-checks, and MDX validation.</li>
-              <li>Run SQL migrations in <code>supabase/migrations</code> and seed data from <code>supabase/seed.sql</code>.</li>
-            </ul>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 text-[var(--accent-deep)]">
+            <ClipboardList className="h-5 w-5" />
+            <h3 className="text-lg font-semibold">Create a course</h3>
           </div>
-          <div className="card p-6 space-y-3">
-            <div className="flex items-center gap-3 text-[var(--accent-deep)]">
-              {supabaseConfigured ? <CheckCircle2 className="h-5 w-5" /> : <ShieldQuestion className="h-5 w-5" />}
-              <h3 className="text-lg font-semibold">Supabase status</h3>
-            </div>
-            <p className="text-[var(--muted)]">
-              {supabaseConfigured
-                ? "Supabase environment variables detected. Server actions and API routes will attempt to persist check-ins and course data."
-                : "Supabase credentials are not set yet. Add NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY to enable persistence."}
-            </p>
-            <Link href="/api/status" className="button-secondary w-fit">
-              Check API
-            </Link>
-            <div className="text-sm text-[var(--muted)] space-y-1">
-              <p>Exports (CSV, service role required):</p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>
-                  <Link href="/api/admin/export/enrollments" className="text-[var(--accent-deep)]">
-                    Enrollments
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/api/admin/export/checkins" className="text-[var(--accent-deep)]">
-                    Check-ins
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/api/admin/export/attendance" className="text-[var(--accent-deep)]">
-                    Attendance
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div className="card p-6 space-y-3">
-            <div className="flex items-center gap-3 text-[var(--accent-deep)]">
-              <ShieldCheck className="h-5 w-5" />
-              <h3 className="text-lg font-semibold">Issue certificate (manual)</h3>
-            </div>
-            <p className="text-[var(--muted)] text-sm">
-              Requires <code>SUPABASE_SERVICE_ROLE_KEY</code>. Provide a course ID and user ID to insert a certificate with a
-              verification code.
-            </p>
-            <form
-              className="space-y-2"
-              action={async (formData) => {
-                "use server";
-                const courseId = String(formData.get("courseId") || "").trim();
-                const userId = String(formData.get("userId") || "").trim();
-                await issueCertificate(courseId, userId);
-              }}
-            >
-              <label className="text-sm font-semibold text-[var(--ink)]" htmlFor="courseId">
-                Course ID
-              </label>
-              <input
-                id="courseId"
-                name="courseId"
-                className="w-full rounded-xl border border-[rgba(20,34,64,0.12)] bg-white px-3 py-2 focus:border-[var(--accent)] focus:outline-none"
-                placeholder="UUID"
-                required
-              />
-              <label className="text-sm font-semibold text-[var(--ink)]" htmlFor="userId">
-                User ID
-              </label>
-              <input
-                id="userId"
-                name="userId"
-                className="w-full rounded-xl border border-[rgba(20,34,64,0.12)] bg-white px-3 py-2 focus:border-[var(--accent)] focus:outline-none"
-                placeholder="UUID"
-                required
-              />
-              <button type="submit" className="button-primary w-full">
-                Issue certificate
-              </button>
-            </form>
-          </div>
+          <CourseBuilder
+            courses={courseOptions}
+            pathways={pathways}
+            instructors={instructors.map((instructor) => ({
+              id: instructor.id,
+              displayName: instructor.display_name || instructor.email || "Instructor",
+              email: instructor.email,
+              role: instructor.role,
+            }))}
+          />
         </div>
       </main>
       <SiteFooter />

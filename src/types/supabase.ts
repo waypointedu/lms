@@ -220,6 +220,7 @@ export interface Database {
           language: string | null;
           published: boolean | null;
           pathway: string | null;
+          topic: string | null;
           title_es: string | null;
           created_at: string | null;
         };
@@ -233,11 +234,45 @@ export interface Database {
           language?: string | null;
           published?: boolean | null;
           pathway?: string | null;
+          topic?: string | null;
           title_es?: string | null;
           created_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["courses"]["Insert"]>;
         Relationships: [];
+      };
+      course_pathways: {
+        Row: {
+          course_id: string;
+          pathway: string;
+          created_at: string | null;
+        };
+        Insert: {
+          course_id: string;
+          pathway: string;
+          created_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["course_pathways"]["Insert"]>;
+        Relationships: [
+          { foreignKeyName: "course_pathways_course_id_fkey"; columns: ["course_id"]; referencedRelation: "courses"; referencedColumns: ["id"] },
+        ];
+      };
+      course_prerequisites: {
+        Row: {
+          course_id: string;
+          prerequisite_course_id: string;
+          created_at: string | null;
+        };
+        Insert: {
+          course_id: string;
+          prerequisite_course_id: string;
+          created_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["course_prerequisites"]["Insert"]>;
+        Relationships: [
+          { foreignKeyName: "course_prerequisites_course_id_fkey"; columns: ["course_id"]; referencedRelation: "courses"; referencedColumns: ["id"] },
+          { foreignKeyName: "course_prerequisites_prerequisite_course_id_fkey"; columns: ["prerequisite_course_id"]; referencedRelation: "courses"; referencedColumns: ["id"] },
+        ];
       };
       roles: {
         Row: {
@@ -501,6 +536,22 @@ export interface Database {
         Relationships: [
           { foreignKeyName: "quizzes_lesson_id_fkey"; columns: ["lesson_id"]; referencedRelation: "lessons"; referencedColumns: ["id"] },
         ];
+      };
+      userbase: {
+        Row: {
+          id: string;
+          email: string | null;
+          role: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          email?: string | null;
+          role?: string | null;
+          created_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["userbase"]["Insert"]>;
+        Relationships: [];
       };
     };
     Views: Record<string, never>;
