@@ -39,7 +39,7 @@ export default async function CoursesPage({ searchParams }: { searchParams: { la
         <SectionHeader
           eyebrow="Learning pathways"
           title="Waypoint Institute • Year One"
-          description="View the pathway outline, checkpoints, and capstone-ready lessons. Students only see what they are enrolled in."
+          description="Browse the pathway outline and weekly checkpoints."
         />
 
         <form className="flex flex-wrap items-center gap-3" action="/courses" method="get">
@@ -70,7 +70,7 @@ export default async function CoursesPage({ searchParams }: { searchParams: { la
 
         {catalog.length === 0 ? (
           <div className="card p-6 text-[var(--muted)]">
-            No courses found for this language. Try another filter or check back soon.
+            No courses yet for this filter. Check back soon.
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2">

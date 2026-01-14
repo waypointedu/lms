@@ -96,7 +96,21 @@ export async function markLessonComplete(lessonId: string, courseSlug?: string, 
   return { ok: true, message: "Lesson marked complete." };
 }
 
-export async function upsertProfile(displayName: string) {
+type ProfileUpdatePayload = {
+  displayName: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  mailingAddressLine1?: string;
+  mailingAddressLine2?: string;
+  mailingCity?: string;
+  mailingState?: string;
+  mailingPostalCode?: string;
+  mailingCountry?: string;
+};
+
+export async function upsertProfile(payload: ProfileUpdatePayload) {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return { ok: false, message: "Supabase is not configured." };
 
@@ -106,12 +120,19 @@ export async function upsertProfile(displayName: string) {
 
   if (!user) return { ok: false, message: "Sign in first." };
 
-  const service = getServiceRoleClient();
-  const client = service || supabase;
-
-  const { error } = await client.from("profiles").upsert({
+  const { error } = await supabase.from("profiles").upsert({
     id: user.id,
-    display_name: displayName,
+    display_name: payload.displayName,
+    first_name: payload.firstName || null,
+    last_name: payload.lastName || null,
+    email: payload.email || user.email || null,
+    phone: payload.phone || null,
+    mailing_address_line1: payload.mailingAddressLine1 || null,
+    mailing_address_line2: payload.mailingAddressLine2 || null,
+    mailing_city: payload.mailingCity || null,
+    mailing_state: payload.mailingState || null,
+    mailing_postal_code: payload.mailingPostalCode || null,
+    mailing_country: payload.mailingCountry || null,
   });
 
   if (error) {
@@ -120,7 +141,76 @@ export async function upsertProfile(displayName: string) {
   }
 
   revalidatePath("/dashboard");
+  revalidatePath("/profile");
   return { ok: true, message: "Profile saved." };
+}
+
+export async function updateAccount(formData: FormData) {
+  "use server";
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return { ok: false, message: "Supabase is not configured." };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { ok: false, message: "Sign in first." };
+
+  const displayName = String(formData.get("displayName") || "").trim();
+  const firstName = String(formData.get("firstName") || "").trim();
+  const lastName = String(formData.get("lastName") || "").trim();
+  const email = String(formData.get("email") || "").trim();
+  const phone = String(formData.get("phone") || "").trim();
+  const mailingAddressLine1 = String(formData.get("mailingAddressLine1") || "").trim();
+  const mailingAddressLine2 = String(formData.get("mailingAddressLine2") || "").trim();
+  const mailingCity = String(formData.get("mailingCity") || "").trim();
+  const mailingState = String(formData.get("mailingState") || "").trim();
+  const mailingPostalCode = String(formData.get("mailingPostalCode") || "").trim();
+  const mailingCountry = String(formData.get("mailingCountry") || "").trim();
+  const newPassword = String(formData.get("newPassword") || "").trim();
+
+  const authUpdates: { email?: string; password?: string } = {};
+  if (email && email !== user.email) {
+    authUpdates.email = email;
+  }
+  if (newPassword) {
+    authUpdates.password = newPassword;
+  }
+
+  if (Object.keys(authUpdates).length) {
+    const { error: authError } = await supabase.auth.updateUser(authUpdates);
+    if (authError) {
+      console.error("Unable to update auth profile", authError.message);
+      return { ok: false, message: "Account update failed." };
+    }
+  }
+
+  const profileResult = await upsertProfile({
+    displayName,
+    firstName,
+    lastName,
+    email: email || user.email || "",
+    phone,
+    mailingAddressLine1,
+    mailingAddressLine2,
+    mailingCity,
+    mailingState,
+    mailingPostalCode,
+    mailingCountry,
+  });
+
+  return profileResult;
+}
+
+export async function signOut() {
+  "use server";
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return { ok: false, message: "Supabase is not configured." };
+
+  await supabase.auth.signOut();
+  revalidatePath("/");
+  revalidatePath("/dashboard");
+  return { ok: true, message: "Signed out." };
 }
 
 async function logAudit(action: string, target: string | null, actor: string | null) {

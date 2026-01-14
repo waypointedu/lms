@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-
 import { enrollInCourse } from "@/app/actions/lms";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -30,7 +28,24 @@ async function fetchEnrollment(courseId: string) {
 
 export default async function CoursePage({ params }: { params: { slug: string } }) {
   const course = await getCourseDetail(params.slug);
-  if (!course) return notFound();
+  if (!course) {
+    return (
+      <div>
+        <SiteHeader />
+        <main className="container py-14 space-y-6">
+          <SectionHeader
+            eyebrow="Course"
+            title="Course not available"
+            description="This pathway outline is not ready yet. Check back soon."
+          />
+          <Link href="/courses" className="button-secondary w-fit">
+            Back to courses
+          </Link>
+        </main>
+        <SiteFooter />
+      </div>
+    );
+  }
 
   const session = await getCurrentProfile();
   const isEnrolled = course.id ? await fetchEnrollment(course.id) : false;
