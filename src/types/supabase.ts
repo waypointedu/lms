@@ -502,6 +502,22 @@ export interface Database {
           { foreignKeyName: "quizzes_lesson_id_fkey"; columns: ["lesson_id"]; referencedRelation: "lessons"; referencedColumns: ["id"] },
         ];
       };
+      userbase: {
+        Row: {
+          id: string;
+          email: string | null;
+          role: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          email?: string | null;
+          role?: string | null;
+          created_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["userbase"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
