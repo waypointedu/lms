@@ -1,22 +1,15 @@
-import { FileCheck, Gauge, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
-import { ProgressCard } from "@/components/dashboard/progress-card";
 import { SectionHeader } from "@/components/ui/section-header";
-import { checkInPrompts } from "@/data/courses";
-import { getCurrentProfile, getLiveSessions } from "@/lib/queries";
+import { getCurrentProfile } from "@/lib/queries";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 
 type EnrollmentRow = { course_id: string; courses?: { title?: string; slug?: string | null } | null };
 type ModuleRow = { id: string; course_id: string; title?: string | null; position?: number | null };
 type LessonRow = { id: string; module_id: string; title?: string | null; position?: number | null; slug?: string | null };
 type ProgressRow = { lesson_id: string; completed_at: string | null };
-type LiveSessionRow = { title: string; starts_at?: string | null; description?: string | null; cadence?: string; focus?: string };
-type CheckpointRow = { id: string; course_id: string; title: string; week_number: number; due_on?: string | null };
-type CheckpointProgressRow = { checkpoint_id: string; status: string; completed_at?: string | null };
-type CapstoneRow = { id: string; status: string; completed_at?: string | null; course_id: string; enrollment_id: string };
 type EnrollmentRosterRow = { id: string; status: string; cohort_label?: string | null; courses?: { title?: string | null; slug?: string | null } | null; profiles?: { display_name?: string | null } | null };
 
 type CourseProgress = {
@@ -31,7 +24,6 @@ type CourseProgress = {
 };
 
 function StudentCourseCard({ course }: { course: CourseProgress }) {
-  const completion = Math.round((course.completed / course.total) * 100);
   const hasNextLesson = Boolean(course.slug && course.nextLessonSlug);
   const continueHref = hasNextLesson
     ? `/courses/${course.slug}/lessons/${course.nextLessonSlug}`
@@ -40,34 +32,9 @@ function StudentCourseCard({ course }: { course: CourseProgress }) {
       : "/courses";
 
   return (
-    <div className="card p-5 space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold text-[var(--muted)]">Course</p>
-          <h4 className="text-lg font-semibold text-[var(--ink)]">{course.course}</h4>
-        </div>
-        <span className="rounded-full bg-[var(--accent-light)] px-3 py-1 text-xs font-semibold text-[var(--accent-deep)]">
-          {completion}% complete
-        </span>
-      </div>
-      <div className="space-y-2">
-        <p className="text-sm font-semibold text-[var(--ink)]">Next lesson</p>
-        <p className="text-sm text-[var(--muted)]">{course.nextLesson || "All lessons completed"}</p>
-      </div>
-      <div className="h-3 w-full rounded-full bg-[rgba(20,34,64,0.08)] overflow-hidden">
-        <div
-          className="h-full rounded-full bg-[linear-gradient(90deg,var(--accent-deep),var(--accent))] transition-all"
-          style={{ width: `${completion}%` }}
-        />
-      </div>
-      <div className="flex justify-between text-sm text-[var(--muted)]">
-        <span>Progress</span>
-        <span className="font-semibold text-[var(--accent-deep)]">{completion}%</span>
-      </div>
-      <Link href={continueHref} className="button-primary w-full text-center">
-        Continue
-      </Link>
-    </div>
+    <Link href={continueHref} className="button-secondary w-full text-center">
+      Open course
+    </Link>
   );
 }
 
@@ -76,11 +43,8 @@ export default async function DashboardPage() {
   const supabase = await getSupabaseServerClient();
 
   let progressCards: CourseProgress[] = [];
-  let checkpointSummary: Array<{ title: string; week: number; due_on?: string | null; status: string }> = [];
-  let capstoneStatus: { status: string; completed_at?: string | null } | null = null;
   let roster: EnrollmentRosterRow[] = [];
-  let summaryStats = { active: 0, behind: 0, ready: 0 };
-  const liveSessions = (await getLiveSessions()) as LiveSessionRow[];
+  let summaryStats = { active: 0 };
 
   if (supabase && session?.user) {
     const { data: enrollments, error: enrollmentError } = await supabase
@@ -150,46 +114,6 @@ export default async function DashboardPage() {
       });
     }
 
-    const courseIds = progressCards.map((card) => card.courseId).filter(Boolean) as string[];
-
-    const { data: checkpoints } = courseIds.length
-      ? await supabase
-          .from("checkpoints")
-          .select("id, course_id, title, week_number, due_on")
-          .in("course_id", courseIds)
-          .order("week_number", { ascending: true })
-      : { data: [] as CheckpointRow[] };
-
-    const { data: checkpointProgress } = session.user
-      ? await supabase
-          .from("checkpoint_progress")
-          .select("checkpoint_id, status, completed_at")
-          .eq("user_id", session.user.id)
-      : { data: [] as CheckpointProgressRow[] };
-
-    const checkpointStatus = new Map(
-      (checkpointProgress || []).map((row) => [row.checkpoint_id, row.status || "not_started"]),
-    );
-
-    checkpointSummary = (checkpoints as CheckpointRow[] | null)?.map((checkpoint) => ({
-      title: checkpoint.title,
-      week: checkpoint.week_number,
-      due_on: checkpoint.due_on,
-      status: checkpointStatus.get(checkpoint.id) || "not_started",
-    })) || [];
-
-    const { data: capstones } = courseIds.length
-      ? await supabase
-          .from("capstones")
-          .select("id, status, completed_at, course_id, enrollment_id")
-          .in("course_id", courseIds)
-          .eq("student_id", session.user.id)
-      : { data: [] as CapstoneRow[] };
-
-    capstoneStatus = (capstones as CapstoneRow[] | null)?.[0]
-      ? { status: (capstones as CapstoneRow[])[0].status, completed_at: (capstones as CapstoneRow[])[0].completed_at }
-      : null;
-
     const derivedRole = (session.roles?.[0] || session.profile.role || "").toLowerCase();
     if (derivedRole === "faculty" || derivedRole === "admin") {
       const { data: rosterData } = await supabase
@@ -200,35 +124,17 @@ export default async function DashboardPage() {
     }
   }
 
-  if (!checkpointSummary.length) {
-    checkpointSummary = [
-      { title: "Week 4: Practicing Sabbath", week: 4, status: "not_started", due_on: undefined },
-      { title: "Week 8: Culture listening lab", week: 8, status: "not_started", due_on: undefined },
-    ];
-  }
-
-  if (!progressCards.length) {
-    progressCards = [
-      {
-        course: "Year One / Certificate in Biblical Formation",
-        completed: 3,
-        total: 8,
-        status: "on-track",
-        nextLesson: "Prayer, Sabbath, and community rhythms",
-        nextLessonSlug: "formation-rhythms",
-      },
-    ];
-  }
-
   summaryStats = {
     active: roster.length || progressCards.length,
-    behind: progressCards.filter((card) => card.status === "behind").length,
-    ready: progressCards.filter((card) => card.status === "ready").length,
   };
 
   const derivedRole = (session?.roles?.[0] || session?.profile?.role || "student").toLowerCase();
   const isStaff = derivedRole === "faculty" || derivedRole === "admin";
   const isAdmin = derivedRole === "admin";
+  const completedLessons = progressCards.reduce((total, card) => total + card.completed, 0);
+  const totalLessons = progressCards.reduce((total, card) => total + card.total, 0);
+  const overallCompletion = totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0;
+  const currentCourse = progressCards.find((card) => card.completed < card.total) || progressCards[0];
 
   return (
     <div>
@@ -240,9 +146,9 @@ export default async function DashboardPage() {
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <p className="pill">{isAdmin ? "Admin dashboard" : "Faculty dashboard"}</p>
-                  <h1 className="text-4xl font-bold mt-3">Waypoint Learning Pathway</h1>
+                  <h1 className="text-4xl font-bold mt-3">Course management</h1>
                   <p className="text-[var(--muted)] max-w-2xl">
-                    Manage enrollments, checkpoint progress, and capstone conversations. Students never see admin links or rosters.
+                    Build courses, upload media, and keep the pathway organized. Students only see the courses they are enrolled in.
                   </p>
                 </div>
                 <div className="flex gap-3">
@@ -250,68 +156,33 @@ export default async function DashboardPage() {
                     View pathway
                   </Link>
                   <Link href="/admin" className="button-primary">
-                    Open admin tools
+                    Open course builder
                   </Link>
                 </div>
               </div>
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2">
                 <div className="card p-5 space-y-2">
-                  <div className="flex items-center gap-3 text-[var(--accent-deep)]">
-                    <div className="rounded-2xl bg-[var(--accent-light)] p-2">
-                      <FileCheck className="h-5 w-5" />
-                    </div>
-                    <p className="text-sm font-semibold">Active learners</p>
-                  </div>
-                  <h3 className="text-xl font-bold">{summaryStats.active}</h3>
-                  <p className="text-[var(--muted)] text-sm">Enrolled across the pathway</p>
+                  <p className="text-sm font-semibold text-[var(--accent-deep)]">Active learners</p>
+                  <h3 className="text-2xl font-bold">{summaryStats.active}</h3>
+                  <p className="text-[var(--muted)] text-sm">Learners enrolled in the pathway.</p>
                 </div>
                 <div className="card p-5 space-y-2">
-                  <div className="flex items-center gap-3 text-[var(--accent-deep)]">
-                    <div className="rounded-2xl bg-[var(--accent-light)] p-2">
-                      <Gauge className="h-5 w-5" />
-                    </div>
-                    <p className="text-sm font-semibold">Behind checkpoints</p>
-                  </div>
-                  <h3 className="text-xl font-bold">{summaryStats.behind}</h3>
-                  <p className="text-[var(--muted)] text-sm">Need a faculty nudge</p>
-                </div>
-                <div className="card p-5 space-y-2">
-                  <div className="flex items-center gap-3 text-[var(--accent-deep)]">
-                    <div className="rounded-2xl bg-[var(--accent-light)] p-2">
-                      <ShieldCheck className="h-5 w-5" />
-                    </div>
-                    <p className="text-sm font-semibold">Ready for capstone</p>
-                  </div>
-                  <h3 className="text-xl font-bold">{summaryStats.ready}</h3>
-                  <p className="text-[var(--muted)] text-sm">Invite to schedule conversations</p>
+                  <p className="text-sm font-semibold text-[var(--accent-deep)]">Course setup</p>
+                  <p className="text-[var(--muted)] text-sm">
+                    Use the course builder to define weeks, lessons, assignments, and uploads.
+                  </p>
+                  <Link href="/admin" className="button-secondary w-fit">
+                    Start a course
+                  </Link>
                 </div>
               </div>
-            </section>
-
-            <section className="space-y-6">
-              <SectionHeader
-                eyebrow="Progress"
-                title="Checkpoint and lesson completion"
-                description="Progress pulls directly from Supabase enrollments, lessons, and checkpoint progress."
-              />
-              {session?.user ? (
-                <div className="grid gap-4 md:grid-cols-3">
-                  {progressCards.length ? (
-                    progressCards.map((item) => <ProgressCard key={item.course} progress={item} />)
-                  ) : (
-                    <p className="text-[var(--muted)]">Enroll in a course to start tracking progress.</p>
-                  )}
-                </div>
-              ) : (
-                <p className="text-[var(--muted)]">Sign in to view your enrollments and progress.</p>
-              )}
             </section>
 
             <section className="space-y-4">
               <SectionHeader
-                eyebrow="Rosters"
-                title="Who is active this week"
-                description="Filtered by your role. Students never see this list."
+                eyebrow="Learners"
+                title="Enrollment roster"
+                description="Visible to admins and instructors only."
               />
               <div className="card p-6 space-y-3">
                 {roster.length ? (
@@ -338,49 +209,8 @@ export default async function DashboardPage() {
                     </table>
                   </div>
                 ) : (
-                  <p className="text-[var(--muted)]">No enrollments found yet.</p>
+                  <p className="text-[var(--muted)]">No learners enrolled yet.</p>
                 )}
-              </div>
-            </section>
-
-            <section className="grid gap-8 md:grid-cols-[1.1fr_0.9fr] items-start">
-              <div className="card p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-semibold">Live session queue</h3>
-                  <span className="rounded-full bg-[var(--accent-light)] px-3 py-1 text-xs font-semibold text-[var(--accent-deep)]">
-                    Cohort-ready
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  {liveSessions.length === 0 ? (
-                    <p className="text-[var(--muted)] text-sm">No live sessions yet. Add them in Supabase or seed data.</p>
-                  ) : (
-                    liveSessions.map((session: LiveSessionRow) => (
-                      <div key={session.title} className="flex items-start gap-3 rounded-2xl border border-[rgba(20,34,64,0.08)] bg-[rgba(20,34,64,0.02)] px-3 py-3">
-                        <Gauge className="h-5 w-5 text-[var(--accent-deep)]" />
-                        <div>
-                          <p className="font-semibold">{session.title}</p>
-                          <p className="text-sm text-[var(--muted)]">{(session as { starts_at?: string }).starts_at || session.cadence}</p>
-                          <p className="text-sm text-[var(--muted)]">{session.description || (session as { focus?: string }).focus}</p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-              <div className="card p-6 space-y-4">
-                <h3 className="text-xl font-semibold">Check-in prompts</h3>
-                <div className="space-y-3">
-                  {checkInPrompts.map((prompt) => (
-                    <div key={prompt.title} className="rounded-2xl border border-[rgba(20,34,64,0.08)] bg-white px-4 py-3">
-                      <p className="text-sm font-semibold text-[var(--ink)]">{prompt.title}</p>
-                      <p className="text-sm text-[var(--muted)]">{prompt.prompt}</p>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-[var(--muted)]">
-                  Connect the form on the home page or your own client component to Supabase with server actions to log attendance.
-                </p>
               </div>
             </section>
           </>
@@ -390,144 +220,88 @@ export default async function DashboardPage() {
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <p className="pill">Learner dashboard</p>
-                  <h1 className="text-4xl font-bold mt-3">Stay on track</h1>
+                  <h1 className="text-4xl font-bold mt-3">Your pathway</h1>
                   <p className="text-[var(--muted)] max-w-2xl">
-                    See your courses, checkpoints, and capstone status in one place. Admin and faculty tools stay hidden unless you have that role.
+                    Everything you need for your program in one place. Your grades, current course, and next steps appear here.
                   </p>
                 </div>
                 <div className="flex gap-3">
                   <Link href="/courses" className="button-secondary">
-                    Browse catalog
+                    View pathway
                   </Link>
-                  <Link href="/#check-in" className="button-primary">
-                    Check-in
+                  <Link href="/courses" className="button-primary">
+                    Open courses
                   </Link>
                 </div>
+              </div>
+            </section>
+
+            <section className="grid gap-6 md:grid-cols-3">
+              <div className="card p-6 space-y-2">
+                <p className="text-xs font-semibold text-[var(--muted)]">Program progress</p>
+                <p className="text-3xl font-bold">{overallCompletion}%</p>
+                <p className="text-sm text-[var(--muted)]">Updates as you complete lessons.</p>
+              </div>
+              <div className="card p-6 space-y-2">
+                <p className="text-xs font-semibold text-[var(--muted)]">Current course</p>
+                <p className="text-lg font-semibold">{currentCourse?.course || "No course yet"}</p>
+                <p className="text-sm text-[var(--muted)]">{currentCourse?.nextLesson || "No lessons assigned yet."}</p>
+              </div>
+              <div className="card p-6 space-y-2">
+                <p className="text-xs font-semibold text-[var(--muted)]">Projected graduation</p>
+                <p className="text-lg font-semibold">Not available yet</p>
+                <p className="text-sm text-[var(--muted)]">Set course durations to calculate this automatically.</p>
               </div>
             </section>
 
             <section className="space-y-6">
               <SectionHeader
-                eyebrow="Your courses"
-                title="Continue where you left off"
-                description="Course cards show the next lesson, progress, and a single continue action for each enrollment."
+                eyebrow="Pathway"
+                title="All courses in your program"
+                description="Your full pathway appears here. Current course is highlighted when available."
               />
               {session?.user ? (
-                <div className="grid gap-4 md:grid-cols-3">
-                  {progressCards.length ? (
-                    progressCards.map((item) => <StudentCourseCard key={item.course} course={item} />)
-                  ) : (
-                    <p className="text-[var(--muted)]">Enroll in a course to start tracking progress.</p>
-                  )}
-                </div>
+                progressCards.length ? (
+                  <div className="card p-6">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-[var(--muted)]">
+                            <th className="py-2 pr-4">Course</th>
+                            <th className="py-2 pr-4">Progress</th>
+                            <th className="py-2 pr-4">Status</th>
+                            <th className="py-2 pr-4">Grade</th>
+                            <th className="py-2 pr-4">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[rgba(20,34,64,0.08)]">
+                          {progressCards.map((item) => {
+                            const completion = Math.round((item.completed / item.total) * 100);
+                            const isCurrent = currentCourse?.courseId && item.courseId === currentCourse.courseId;
+                            return (
+                              <tr key={item.course} className={isCurrent ? "bg-[rgba(20,34,64,0.03)]" : undefined}>
+                                <td className="py-3 pr-4 font-semibold text-[var(--ink)]">{item.course}</td>
+                                <td className="py-3 pr-4 text-[var(--muted)]">
+                                  {item.completed} of {item.total} lessons ({completion}%)
+                                </td>
+                                <td className="py-3 pr-4 capitalize">{item.status.replace(/_/g, " ")}</td>
+                                <td className="py-3 pr-4 text-[var(--muted)]">—</td>
+                                <td className="py-3 pr-4">
+                                  <StudentCourseCard course={item} />
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[var(--muted)]">No courses yet. Your pathway will appear once you are enrolled.</p>
+                )
               ) : (
                 <p className="text-[var(--muted)]">Sign in to view your enrollments and progress.</p>
               )}
-            </section>
-
-            <section className="grid gap-6 md:grid-cols-2">
-              <div className="card p-6 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-semibold">Checkpoint status</h3>
-                  <span className="rounded-full bg-[var(--accent-light)] px-3 py-1 text-xs font-semibold text-[var(--accent-deep)]">
-                    Weekly rhythm
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  {checkpointSummary.map((checkpoint) => (
-                    <div key={`${checkpoint.title}-${checkpoint.week}`} className="flex items-center justify-between rounded-2xl border border-[rgba(20,34,64,0.08)] bg-white px-4 py-3">
-                      <div>
-                        <p className="text-sm font-semibold text-[var(--ink)]">
-                          Week {checkpoint.week}: {checkpoint.title}
-                        </p>
-                        <p className="text-xs text-[var(--muted)]">
-                          {checkpoint.due_on ? `Due ${new Date(checkpoint.due_on).toLocaleDateString()}` : "Scheduled"}
-                        </p>
-                      </div>
-                      <span className="pill capitalize">{checkpoint.status.replace(/_/g, " ")}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="card p-6 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-[var(--muted)]">Capstone</p>
-                    <h3 className="text-xl font-semibold">Conversation readiness</h3>
-                  </div>
-                  <ShieldCheck className="h-6 w-6 text-[var(--accent-deep)]" />
-                </div>
-                <p className="text-sm text-[var(--muted)]">
-                  Schedule a capstone conversation once your checkpoints are complete. Faculty will confirm the slot and record the outcome.
-                </p>
-                <div className="flex items-center gap-2 rounded-2xl bg-[rgba(20,34,64,0.04)] px-4 py-3 text-sm">
-                  <div className={`h-2 w-2 rounded-full ${capstoneStatus?.status === "passed" ? "bg-green-600" : "bg-[var(--accent-deep)]"}`} />
-                  <span className="font-semibold text-[var(--ink)]">Status:</span>
-                  <span className="text-[var(--muted)] capitalize">{capstoneStatus?.status || "not started"}</span>
-                </div>
-                <Link href="/capstone" className="button-secondary w-full text-center">
-                  View capstone steps
-                </Link>
-              </div>
-            </section>
-
-            <section className="grid gap-8 md:grid-cols-[1.1fr_0.9fr] items-start">
-              <div className="card p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-semibold">Live session queue</h3>
-                  <span className="rounded-full bg-[var(--accent-light)] px-3 py-1 text-xs font-semibold text-[var(--accent-deep)]">
-                    Cohort-ready
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  {liveSessions.length === 0 ? (
-                    <p className="text-[var(--muted)] text-sm">No live sessions yet. Add them in Supabase or seed data.</p>
-                  ) : (
-                    liveSessions.map((session: LiveSessionRow) => (
-                      <div key={session.title} className="flex items-start gap-3 rounded-2xl border border-[rgba(20,34,64,0.08)] bg-[rgba(20,34,64,0.02)] px-3 py-3">
-                        <Gauge className="h-5 w-5 text-[var(--accent-deep)]" />
-                        <div>
-                          <p className="font-semibold">{session.title}</p>
-                          <p className="text-sm text-[var(--muted)]">{(session as { starts_at?: string }).starts_at || session.cadence}</p>
-                          <p className="text-sm text-[var(--muted)]">{session.description || (session as { focus?: string }).focus}</p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div className="card p-6 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-semibold text-[var(--muted)]">Check-in</p>
-                      <h3 className="text-xl font-semibold">Share today&apos;s update</h3>
-                    </div>
-                    <FileCheck className="h-5 w-5 text-[var(--accent-deep)]" />
-                  </div>
-                  <p className="text-sm text-[var(--muted)]">Use the single check-in to capture progress, blockers, or links to your latest submission.</p>
-                  <Link href="/#check-in" className="button-primary w-full text-center">
-                    Record check-in
-                  </Link>
-                </div>
-                <div className="card p-6 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-semibold text-[var(--muted)]">Capstone</p>
-                      <h3 className="text-xl font-semibold">Status: {capstoneStatus?.status || "not scheduled"}</h3>
-                    </div>
-                    <ShieldCheck className="h-6 w-6 text-[var(--accent-deep)]" />
-                  </div>
-                  <p className="text-sm text-[var(--muted)]">
-                    Schedule your capstone conversation once your checkpoints are marked complete. Faculty will confirm the slot and record the outcome.
-                  </p>
-                  <div className="flex items-center gap-2 rounded-2xl bg-[rgba(20,34,64,0.04)] px-4 py-3 text-sm">
-                    <div className={`h-2 w-2 rounded-full ${capstoneStatus?.status === "passed" ? "bg-green-600" : "bg-[var(--accent-deep)]"}`} />
-                    <span className="font-semibold text-[var(--ink)]">Next step:</span>
-                    <span className="text-[var(--muted)]">Request a capstone time or upload your testimony outline.</span>
-                  </div>
-                </div>
-              </div>
             </section>
           </>
         )}
