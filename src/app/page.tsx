@@ -15,17 +15,17 @@ import type { Json } from "@/types/supabase";
 const valueProps = [
   {
     title: "Role-aware dashboards",
-    description: "Students, faculty, and admins each see only what they need for the pathway.",
+    description: "Learners and staff each see the tools they need.",
     icon: <CheckCircle2 className="h-5 w-5" />,
   },
   {
     title: "Weekly checkpoints",
-    description: "Clear requirements, due dates, and reflection prompts to stay on track.",
+    description: "Clear weekly steps to keep learning on track.",
     icon: <CalendarClock className="h-5 w-5" />,
   },
   {
     title: "Capstone conversation",
-    description: "Schedule, review, and record outcomes for the final oral capstone.",
+    description: "Simple scheduling for the final capstone.",
     icon: <ShieldCheck className="h-5 w-5" />,
   },
 ];
@@ -60,11 +60,10 @@ export default async function Home() {
             <div className="space-y-6">
               <div className="pill w-fit">Waypoint Learning Pathway</div>
               <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-                Tuition-free formation with checkpoints and a capstone conversation
+                Formation with checkpoints and a capstone conversation
               </h1>
               <p className="text-lg text-[var(--muted)] max-w-2xl">
-                Year One guides you through Scripture, doctrine, culture, and mission. Lessons live in MDX, and progress
-                stays secure in Supabase with role-aware dashboards for students, faculty, and admins.
+                Year One guides Scripture, doctrine, culture, and mission with a simple weekly rhythm.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link href="/dashboard" className="button-primary">
@@ -75,13 +74,13 @@ export default async function Home() {
                 </Link>
               </div>
               <div className="flex flex-wrap gap-4 text-sm text-[var(--muted)]">
-                <span className="flex items-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm">
-                  <Sparkles className="h-4 w-4 text-[var(--accent-deep)]" />
-                  Tuition-free
-                </span>
                 <span className="flex items-center gap-2 rounded-full bg-[var(--accent-light)] px-3 py-2 text-[var(--accent-deep)]">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Checkpoints + capstone ready
+                  <Sparkles className="h-4 w-4" />
+                  Guided pathway
+                </span>
+                <span className="flex items-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm">
+                  <CheckCircle2 className="h-4 w-4 text-[var(--accent-deep)]" />
+                  Checkpoints + capstone
                 </span>
               </div>
             </div>
@@ -113,11 +112,11 @@ export default async function Home() {
 
         <section>
           <div className="container space-y-8">
-            <SectionHeader
-              eyebrow="Year One pathway"
-              title="Stay focused on formation, not platform setup"
-              description="One learning pathway with checkpoints, capstone scheduling, and faculty support. Everything else is hidden from students."
-            />
+              <SectionHeader
+                eyebrow="Year One pathway"
+                title="Stay focused on formation, not platform setup"
+                description="One pathway with weekly checkpoints and a guided capstone."
+              />
             <div className="grid gap-6 md:grid-cols-2">
               {pathwayCourse ? <CourseCard course={pathwayCourse} ctaLabel="My courses" /> : null}
               <div className="card p-6 space-y-3">
@@ -132,7 +131,7 @@ export default async function Home() {
                   ))}
                 </div>
                 <div className="rounded-2xl bg-[rgba(20,34,64,0.04)] px-4 py-3 text-sm text-[var(--muted)]">
-                  Faculty and admins can assign roles, enroll students, and monitor capstones without exposing admin links to learners.
+                  Staff tools stay separate from learner views.
                 </div>
               </div>
             </div>
@@ -145,7 +144,7 @@ export default async function Home() {
               <SectionHeader
                 eyebrow="Course outline"
                 title="Year One / Certificate in Biblical Formation"
-                description="Lessons live in MDX with a clear weekly rhythm."
+                description="A clear weekly rhythm."
               />
               <div className="card p-6 space-y-4 text-[var(--muted)]">
                 {courseMarkdown ? (
@@ -215,7 +214,7 @@ export default async function Home() {
                 </button>
               </form>
               <p className="text-xs text-[var(--muted)]">
-                Check-ins write to Supabase when configured. Students only see their own submissions.
+                Check-ins stay private to each learner.
               </p>
             </div>
           </div>
@@ -226,7 +225,7 @@ export default async function Home() {
             <SectionHeader
               eyebrow="Student-first"
               title="Clarity for learners, control for admins"
-              description="Nothing here advertises the template. Students see checkpoints, lessons, and the capstone status—admins see the toolkit elsewhere."
+              description="Learners see what they need. Staff tools stay separate."
             />
             <div className="grid gap-4 md:grid-cols-3">
               {valueProps.map((value) => (
@@ -246,7 +245,7 @@ export default async function Home() {
                   <h3 className="text-lg font-semibold">Content stays in MDX</h3>
                 </div>
                 <p className="text-[var(--muted)]">
-                  Course and lesson content lives in <code>src/content</code>. Faculty can edit in Git while learners keep reading uninterrupted.
+                  Course content lives in <code>src/content</code>.
                 </p>
               </div>
             </div>
