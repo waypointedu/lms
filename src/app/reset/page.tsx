@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
@@ -9,36 +9,26 @@ export default function ResetPasswordPage() {
   const supabase = getSupabaseBrowserClient();
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const [hasSession, setHasSession] = useState(false);
   const [isPending, startTransition] = useTransition();
-
-  useEffect(() => {
-    if (!supabase) {
-      setMessage("Password reset is not ready yet. Please try again later.");
-      return;
-    }
-
-    supabase.auth
-      .getSession()
-      .then(({ data }) => {
-        setHasSession(Boolean(data.session));
-        if (!data.session) {
-          setMessage("Open the reset link from your email to continue.");
-        }
-      })
-      .catch(() => {
-        setMessage("Open the reset link from your email to continue.");
-      });
-  }, [supabase]);
+  const missingSupabaseMessage =
+    "Password reset is not ready yet. Please try again later.";
+  const missingSessionMessage =
+    "Open the reset link from your email to continue.";
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!supabase) {
-      setMessage("Password reset is not ready yet. Please try again later.");
+      setMessage(missingSupabaseMessage);
       return;
     }
 
     startTransition(async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        setMessage(missingSessionMessage);
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser({ password });
       if (error) {
         setMessage(error.message);
@@ -61,7 +51,7 @@ export default function ResetPasswordPage() {
       </div>
 
       <div className="card p-6 max-w-xl space-y-4">
-        {hasSession ? (
+        {supabase ? (
           <form className="space-y-4" onSubmit={handleSubmit}>
             <label
               className="block text-sm font-semibold text-[var(--ink)]"
@@ -90,6 +80,9 @@ export default function ResetPasswordPage() {
 
         {message ? (
           <p className="text-sm text-[var(--muted)]">{message}</p>
+        ) : null}
+        {!message && !supabase ? (
+          <p className="text-sm text-[var(--muted)]">{missingSupabaseMessage}</p>
         ) : null}
         <p className="text-sm text-[var(--muted)]">
           <Link

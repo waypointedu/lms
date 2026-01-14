@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
@@ -10,19 +10,13 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const [redirectUrl, setRedirectUrl] = useState(
-    process.env.NEXT_PUBLIC_WAYPOINT_SITE_URL || "",
-  );
   const [isPending, startTransition] = useTransition();
+  const redirectUrl =
+    process.env.NEXT_PUBLIC_WAYPOINT_SITE_URL ||
+    (typeof window !== "undefined" ? window.location.origin : "");
 
   const missingSupabaseMessage =
     "Sign-in is not ready yet. Please try again later.";
-
-  useEffect(() => {
-    setRedirectUrl(
-      process.env.NEXT_PUBLIC_WAYPOINT_SITE_URL || window.location.origin,
-    );
-  }, []);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
