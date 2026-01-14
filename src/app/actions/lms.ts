@@ -220,20 +220,12 @@ const slugify = (value: string) =>
     .trim()
     .replace(/\s+/g, "-");
 
-type CourseTemplateState = { ok: boolean; message: string };
+type CourseBuilderState = { ok: boolean; message: string; courseId?: string; courseTitle?: string };
 
-const templateComponents = [
-  { value: "overview", label: "Overview" },
-  { value: "lesson", label: "Lesson" },
-  { value: "discussion", label: "Discussion" },
-  { value: "quiz", label: "Quiz" },
-  { value: "assignment", label: "Assignment" },
-] as const;
-
-export async function createCourseTemplate(
-  _prevState: CourseTemplateState,
+export async function createCourse(
+  _prevState: CourseBuilderState,
   formData: FormData,
-): Promise<CourseTemplateState> {
+): Promise<CourseBuilderState> {
   "use server";
   const supabase = await getSupabaseServerClient();
   if (!supabase) return { ok: false, message: "Supabase is not configured." };
@@ -242,17 +234,18 @@ export async function createCourseTemplate(
   if (!session?.user) return { ok: false, message: "Sign in to create a course." };
 
   const isAdmin = session.roles.includes("admin") || session.profile.role === "admin";
-  if (!isAdmin) return { ok: false, message: "Only admins can create course templates." };
+  if (!isAdmin) return { ok: false, message: "Only admins can create courses." };
 
   const title = String(formData.get("courseTitle") || "").trim();
   const description = String(formData.get("courseDescription") || "").trim();
-  const rawComponents = formData.getAll("components").map((value) => String(value));
-  const components = templateComponents.filter((component) => rawComponents.includes(component.value));
+  const topic = String(formData.get("courseTopic") || "").trim();
+  const prerequisites = formData.getAll("prerequisites").map((value) => String(value)).filter(Boolean);
+  const pathways = formData.getAll("pathways").map((value) => String(value)).filter(Boolean);
 
   if (!title) return { ok: false, message: "Add a course title to continue." };
-  if (!components.length) return { ok: false, message: "Select at least one component." };
 
   const slug = `${slugify(title)}-${randomUUID().slice(0, 6)}`;
+  const primaryPathway = pathways[0] || null;
 
   const { data: course, error: courseError } = await supabase
     .from("courses")
@@ -260,45 +253,41 @@ export async function createCourseTemplate(
       slug,
       title,
       description: description || null,
-      duration_weeks: 16,
+      topic: topic || null,
+      pathway: primaryPathway,
       published: false,
     })
-    .select("id")
+    .select("id, title")
     .single();
 
   if (courseError || !course) {
     console.error("Unable to create course", courseError?.message);
-    return { ok: false, message: "Unable to create the course template." };
+    return { ok: false, message: "Unable to create the course." };
   }
 
-  for (let week = 1; week <= 16; week += 1) {
-    const { data: moduleRow, error: moduleError } = await supabase
-      .from("modules")
-      .insert({
+  if (prerequisites.length) {
+    const { error: prerequisitesError } = await supabase.from("course_prerequisites").insert(
+      prerequisites.map((courseId) => ({
         course_id: course.id,
-        title: `Week ${week}`,
-        position: week,
-      })
-      .select("id")
-      .single();
-
-    if (moduleError || !moduleRow) {
-      console.error("Unable to create module", moduleError?.message);
-      return { ok: false, message: "Course created, but modules could not be added." };
+        prerequisite_course_id: courseId,
+      })),
+    );
+    if (prerequisitesError) {
+      console.error("Unable to save prerequisites", prerequisitesError.message);
+      return { ok: false, message: "Course created, but prerequisites could not be saved." };
     }
+  }
 
-    const lessons = components.map((component, index) => ({
-      module_id: moduleRow.id,
-      title: component.label,
-      slug: `week-${week}-${component.value}`,
-      position: index + 1,
-      published: false,
-    }));
-
-    const { error: lessonsError } = await supabase.from("lessons").insert(lessons);
-    if (lessonsError) {
-      console.error("Unable to create lessons", lessonsError.message);
-      return { ok: false, message: "Course created, but lessons could not be added." };
+  if (pathways.length) {
+    const { error: pathwaysError } = await supabase.from("course_pathways").insert(
+      pathways.map((pathway) => ({
+        course_id: course.id,
+        pathway,
+      })),
+    );
+    if (pathwaysError) {
+      console.error("Unable to save pathways", pathwaysError.message);
+      return { ok: false, message: "Course created, but pathways could not be saved." };
     }
   }
 
@@ -306,7 +295,9 @@ export async function createCourseTemplate(
   revalidatePath("/dashboard");
   return {
     ok: true,
-    message: `Created "${title}" with 16 weeks and ${components.length} components per week.`,
+    message: `Created "${course.title}".`,
+    courseId: course.id,
+    courseTitle: course.title,
   };
 }
 
