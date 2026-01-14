@@ -1,6 +1,7 @@
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { courses as fallbackCourses } from "@/data/courses";
 import type { User } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
 
 const slugify = (value: string) => value.toLowerCase().replace(/\s+/g, "-");
 
@@ -34,29 +35,20 @@ export interface CourseDetail extends CourseSummary {
   }>;
 }
 
+type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+
 export interface ProfileSession {
   user: User;
-  profile: {
-    id: string;
-    display_name: string | null;
-    role: string | null;
-    first_name?: string | null;
-    last_name?: string | null;
-    email?: string | null;
-    phone?: string | null;
-    mailing_address_line1?: string | null;
-    mailing_address_line2?: string | null;
-    mailing_city?: string | null;
-    mailing_state?: string | null;
-    mailing_postal_code?: string | null;
-    mailing_country?: string | null;
-  };
+  profile: ProfileRow;
   roles: string[];
 }
 
 export async function getCurrentProfile(): Promise<ProfileSession | null> {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return null;
+
+  const profileSelect =
+    "id, display_name, role, first_name, last_name, email, phone, mailing_address_line1, mailing_address_line2, mailing_city, mailing_state, mailing_postal_code, mailing_country, created_at" as const;
 
   const {
     data: { user },
@@ -66,23 +58,7 @@ export async function getCurrentProfile(): Promise<ProfileSession | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select(
-      [
-        "id",
-        "display_name",
-        "role",
-        "first_name",
-        "last_name",
-        "email",
-        "phone",
-        "mailing_address_line1",
-        "mailing_address_line2",
-        "mailing_city",
-        "mailing_state",
-        "mailing_postal_code",
-        "mailing_country",
-      ].join(", "),
-    )
+    .select(profileSelect)
     .eq("id", user.id)
     .maybeSingle();
 
@@ -102,10 +78,10 @@ export async function getCurrentProfile(): Promise<ProfileSession | null> {
       profile || {
         id: user.id,
         display_name: null,
-        role: null,
+        role: "student",
         first_name: null,
         last_name: null,
-        email: user.email,
+        email: user.email || null,
         phone: null,
         mailing_address_line1: null,
         mailing_address_line2: null,
@@ -113,6 +89,7 @@ export async function getCurrentProfile(): Promise<ProfileSession | null> {
         mailing_state: null,
         mailing_postal_code: null,
         mailing_country: null,
+        created_at: null,
       },
     roles,
   };

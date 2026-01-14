@@ -205,12 +205,11 @@ export async function updateAccount(formData: FormData) {
 export async function signOut() {
   "use server";
   const supabase = await getSupabaseServerClient();
-  if (!supabase) return { ok: false, message: "Supabase is not configured." };
+  if (!supabase) return;
 
   await supabase.auth.signOut();
   revalidatePath("/");
   revalidatePath("/dashboard");
-  return { ok: true, message: "Signed out." };
 }
 
 async function logAudit(action: string, target: string | null, actor: string | null) {
