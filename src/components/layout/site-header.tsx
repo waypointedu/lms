@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 
+import { signOut } from "@/app/actions/lms";
 import { getCurrentProfile } from "@/lib/queries";
 
 export async function SiteHeader() {
@@ -35,9 +36,22 @@ export async function SiteHeader() {
                 {session.profile.display_name}
               </span>
             ) : null}
-            <Link href={session?.user ? "/profile" : "/login"} className="button-secondary">
-              {session?.user ? "Account" : "Sign in"}
-            </Link>
+            {session?.user ? (
+              <>
+                <Link href="/profile" className="button-secondary">
+                  Account
+                </Link>
+                <form action={signOut}>
+                  <button type="submit" className="button-secondary">
+                    Log out
+                  </button>
+                </form>
+              </>
+            ) : (
+              <Link href="/login" className="button-secondary">
+                Login
+              </Link>
+            )}
           </div>
         </div>
 
