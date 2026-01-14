@@ -1,4 +1,5 @@
 import { ClipboardList, Layers, ShieldCheck, Sparkles } from "lucide-react";
+import { CourseTemplateForm } from "@/components/admin/course-template-form";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -60,7 +61,17 @@ export default function AdminPage() {
           ))}
         </div>
 
-        <div className="grid gap-8 md:grid-cols-[1.1fr_0.9fr] items-start">
+        <div className="grid gap-8 lg:grid-cols-3 items-start">
+          <div className="card p-6 space-y-4">
+            <div className="flex items-center gap-3 text-[var(--accent-deep)]">
+              <ClipboardList className="h-5 w-5" />
+              <h3 className="text-lg font-semibold">Create a template course</h3>
+            </div>
+            <p className="text-[var(--muted)] text-sm">
+              Build a 16-week baseline course with the components you select. You can edit or remove sections later.
+            </p>
+            <CourseTemplateForm />
+          </div>
           <div className="card p-6 space-y-3">
             <div className="flex items-center gap-3 text-[var(--accent-deep)]">
               <Sparkles className="h-5 w-5" />
