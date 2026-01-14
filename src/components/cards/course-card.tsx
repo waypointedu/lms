@@ -1,6 +1,7 @@
 import { BookOpen, Clock3, ListChecks, MapPin } from "lucide-react";
 import Link from "next/link";
 import type { Course } from "@/data/courses";
+import { slugify } from "@/lib/slug";
 
 interface CourseCardProps {
   course: Course;
@@ -10,6 +11,7 @@ interface CourseCardProps {
 
 export function CourseCard({ course, showActions = true, ctaLabel = "Continue" }: CourseCardProps) {
   const nextCheckpoint = course.checkpoints[0];
+  const courseSlug = slugify(course.slug || course.title);
 
   return (
     <article className="card relative overflow-hidden">
@@ -57,7 +59,7 @@ export function CourseCard({ course, showActions = true, ctaLabel = "Continue" }
               <p>Follow the checkpoint rhythm and schedule your capstone.</p>
             </div>
             <div className="flex gap-3">
-              <Link href={`/courses/${course.slug}`} className="button-secondary">
+              <Link href={`/courses/${courseSlug}`} className="button-secondary">
                 View outline
               </Link>
               <Link href="/dashboard" className="button-primary">

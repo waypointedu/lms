@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { SectionHeader } from "@/components/ui/section-header";
 import { getMarkdown, listCourseMarkdown } from "@/lib/markdown";
 import { getCatalogCourses } from "@/lib/queries";
+import { slugify } from "@/lib/slug";
 
 const languages = [
   { value: "", label: "All languages" },
@@ -14,9 +15,17 @@ const languages = [
 ];
 
 export default async function CoursesPage({ searchParams }: { searchParams: { language?: string } }) {
-  const selectedLanguage = searchParams?.language || "";
+  const normalizeLanguage = (value?: string | null) => {
+    const normalized = value?.toLowerCase().trim();
+    if (!normalized) return "";
+    if (normalized.startsWith("en")) return "en";
+    if (normalized.startsWith("es") || normalized.startsWith("spa") || normalized.startsWith("españ")) return "es";
+    return normalized;
+  };
+
+  const selectedLanguage = normalizeLanguage(searchParams?.language);
   const catalog = (await getCatalogCourses()).filter((course) =>
-    selectedLanguage ? course.language === selectedLanguage : true,
+    selectedLanguage ? normalizeLanguage(course.language) === selectedLanguage : true,
   );
   const markdownSlugs = await listCourseMarkdown();
   const markdownContent = await Promise.all(
@@ -65,26 +74,31 @@ export default async function CoursesPage({ searchParams }: { searchParams: { la
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2">
-            {catalog.map((course) => (
-              <div key={course.slug} id={course.slug} className="card p-6 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="pill">{course.language ? course.language.toUpperCase() : "Course"}</span>
-                  {course.published ? (
-                    <span className="text-sm text-[var(--muted)]">Published</span>
-                  ) : (
-                    <span className="text-sm text-[var(--muted)]">Draft</span>
-                  )}
+            {catalog.map((course) => {
+              const courseKey = course.slug || course.title || "course";
+              const courseSlug = slugify(course.slug || course.title || "");
+
+              return (
+                <div key={courseKey} id={courseSlug} className="card p-6 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="pill">{course.language ? course.language.toUpperCase() : "Course"}</span>
+                    {course.published ? (
+                      <span className="text-sm text-[var(--muted)]">Published</span>
+                    ) : (
+                      <span className="text-sm text-[var(--muted)]">Draft</span>
+                    )}
+                  </div>
+                  <h2 className="text-2xl font-bold">{course.title}</h2>
+                  <p className="text-[var(--muted)]">{course.description}</p>
+                  <p className="text-sm text-[var(--muted)]">
+                    Duration: {course.duration_weeks ? `${course.duration_weeks} weeks` : course.duration || "Self-paced"}
+                  </p>
+                  <Link href={`/courses/${courseSlug}`} className="button-secondary w-fit">
+                    View course
+                  </Link>
                 </div>
-                <h2 className="text-2xl font-bold">{course.title}</h2>
-                <p className="text-[var(--muted)]">{course.description}</p>
-                <p className="text-sm text-[var(--muted)]">
-                  Duration: {course.duration_weeks ? `${course.duration_weeks} weeks` : course.duration || "Self-paced"}
-                </p>
-                <Link href={`/courses/${course.slug}`} className="button-secondary w-fit">
-                  View course
-                </Link>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
