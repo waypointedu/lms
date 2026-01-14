@@ -5,12 +5,14 @@ import { getCurrentProfile } from "@/lib/queries";
 
 export async function SiteHeader() {
   const session = await getCurrentProfile();
-  const role = session?.roles?.[0] || session?.profile?.role || "student";
+  const roles = session?.roles || [];
+  const profileRole = session?.profile?.role;
+  const isAdmin = roles.includes("admin") || profileRole === "admin";
   const navLinks = [
     { href: "/", label: "Home", visible: true },
     { href: "/courses", label: "Courses", visible: true },
-    { href: "/dashboard", label: role ? "My dashboard" : "Dashboard", visible: Boolean(session?.user) },
-    { href: "/admin", label: "Admin", visible: role === "admin" },
+    { href: "/dashboard", label: "My dashboard", visible: Boolean(session?.user) },
+    { href: "/admin", label: "Admin", visible: isAdmin },
   ].filter((link) => link.visible);
 
   return (

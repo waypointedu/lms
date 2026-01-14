@@ -36,7 +36,21 @@ export interface CourseDetail extends CourseSummary {
 
 export interface ProfileSession {
   user: User;
-  profile: { id: string; display_name: string | null; role: string | null };
+  profile: {
+    id: string;
+    display_name: string | null;
+    role: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    mailing_address_line1?: string | null;
+    mailing_address_line2?: string | null;
+    mailing_city?: string | null;
+    mailing_state?: string | null;
+    mailing_postal_code?: string | null;
+    mailing_country?: string | null;
+  };
   roles: string[];
 }
 
@@ -52,7 +66,23 @@ export async function getCurrentProfile(): Promise<ProfileSession | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, display_name, role")
+    .select(
+      [
+        "id",
+        "display_name",
+        "role",
+        "first_name",
+        "last_name",
+        "email",
+        "phone",
+        "mailing_address_line1",
+        "mailing_address_line2",
+        "mailing_city",
+        "mailing_state",
+        "mailing_postal_code",
+        "mailing_country",
+      ].join(", "),
+    )
     .eq("id", user.id)
     .maybeSingle();
 
@@ -66,7 +96,26 @@ export async function getCurrentProfile(): Promise<ProfileSession | null> {
       ?.map((row: { roles?: { slug?: string | null } | null }) => row.roles?.slug)
       .filter((slug): slug is string => Boolean(slug)) || [];
 
-  return { user, profile: profile || { id: user.id, display_name: null, role: null }, roles };
+  return {
+    user,
+    profile:
+      profile || {
+        id: user.id,
+        display_name: null,
+        role: null,
+        first_name: null,
+        last_name: null,
+        email: user.email,
+        phone: null,
+        mailing_address_line1: null,
+        mailing_address_line2: null,
+        mailing_city: null,
+        mailing_state: null,
+        mailing_postal_code: null,
+        mailing_country: null,
+      },
+    roles,
+  };
 }
 
 export async function getCatalogCourses(): Promise<CourseSummary[]> {

@@ -114,8 +114,9 @@ export default async function DashboardPage() {
       });
     }
 
-    const derivedRole = (session.roles?.[0] || session.profile.role || "").toLowerCase();
-    if (derivedRole === "faculty" || derivedRole === "admin") {
+    const hasAdminRole = (session.roles || []).includes("admin") || session.profile.role === "admin";
+    const hasFacultyRole = (session.roles || []).includes("faculty") || session.profile.role === "faculty";
+    if (hasAdminRole || hasFacultyRole) {
       const { data: rosterData } = await supabase
         .from("enrollments")
         .select("id, status, cohort_label, courses(title, slug), profiles(display_name)")
@@ -128,9 +129,12 @@ export default async function DashboardPage() {
     active: roster.length || progressCards.length,
   };
 
-  const derivedRole = (session?.roles?.[0] || session?.profile?.role || "student").toLowerCase();
-  const isStaff = derivedRole === "faculty" || derivedRole === "admin";
-  const isAdmin = derivedRole === "admin";
+  const roles = session?.roles || [];
+  const profileRole = session?.profile?.role || "student";
+  const hasAdmin = roles.includes("admin") || profileRole === "admin";
+  const hasFaculty = roles.includes("faculty") || profileRole === "faculty";
+  const isStaff = hasAdmin || hasFaculty;
+  const isAdmin = hasAdmin;
   const completedLessons = progressCards.reduce((total, card) => total + card.completed, 0);
   const totalLessons = progressCards.reduce((total, card) => total + card.total, 0);
   const overallCompletion = totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0;
