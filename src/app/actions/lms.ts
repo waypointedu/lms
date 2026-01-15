@@ -357,3 +357,184 @@ export async function createCourseTemplate(
     message: "Course templates are not configured yet. Please create courses manually for now.",
   };
 }
+
+
+/**
+ * Publish a course as a template by setting the `is_template` flag on the course.
+ * Only admins are allowed to publish courses as templates.
+ */
+export async function publishCourseAsTemplate(courseId: string) {
+  "use server";
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return { ok: false, message: "Supabase is not configured." };
+
+  const session = await getCurrentProfile();
+  if (!session?.user) return { ok: false, message: "Sign in to publish templates." };
+
+  const isAdmin = session.roles?.includes("admin") || session.profile.role === "admin";
+  if (!isAdmin) return { ok: false, message: "Only admins can publish templates." };
+
+  const { error } = await supabase.from("courses")
+    .update({ is_template: true })
+    .eq("id", courseId);
+
+  if (error) {
+    console.error("Unable to publish course as template", error.message);
+    return { ok: false, message: "Unable to publish course." };
+  }
+
+  revalidatePath("/admin");
+  return { ok: true, message: "Course published as template." };
+}
+
+/**
+ * Schedule an instance of a course template.
+ * Only admins or instructors can schedule a course instance.
+ * Accepts optional term, startDate and endDate strings in YYYY-MM-DD format.
+ */
+export async function scheduleCourseInstance(
+  courseId: string,
+  slug: string,
+  title: string,
+  term?: string,
+  startDate?: string,
+  endDate?: string
+) {
+  "use server";
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return { ok: false, message: "Supabase is not configured." };
+
+  const session = await getCurrentProfile();
+  if (!session?.user) return { ok: false, message: "Sign in to schedule courses." };
+
+  const isAdminOrInstructor =
+    session.roles?.includes("admin") ||
+    session.roles?.includes("instructor") ||
+    session.profile.role === "admin" ||
+    session.profile.role === "instructor";
+
+  if (!isAdminOrInstructor) {
+    return { ok: false, message: "Only admins or instructors can schedule course instances." };
+  }
+
+  const instance = {
+    course_id: courseId,
+    slug,
+    title,
+    term: term || null,
+    start_date: startDate || null,
+    end_date: endDate || null,
+  };
+
+  const { data, error } = await supabase
+    .from("course_instances")
+    .insert(instance)
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("Unable to schedule course instance", error.message);
+    return { ok: false, message: "Unable to schedule course instance." };
+  }
+
+  revalidatePath("/admin");
+  return { ok: true, message: "Course instance scheduled.", instanceId: data.id };
+}
+
+/**
+ * Enroll the current user in a specific course instance.
+ * Creates a new enrollment with status "active".
+ */
+export async function enrollInCourseInstance(courseInstanceId: string) {
+  "use server";
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return { ok: false, message: "Supabase is not configured." };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Sign in to enroll." };
+
+  const { error } = await supabase.from("enrollments").insert({
+    user_id: user.id,
+    course_instance_id: courseInstanceId,
+    status: "active",
+  });
+
+  if (error) {
+    console.error("Unable to enroll in course instance", error.message);
+    return { ok: false, message: "Unable to enroll in course." };
+  }
+
+  revalidatePath("/dashboard");
+  return { ok: true, message: "Enrolled in course instance." };
+}
+
+/**
+ * Withdraw a user from a course by updating the enrollment status.
+ * A user or instructor/admin can withdraw.
+ */
+export async function withdrawFromCourse(enrollmentId: string) {
+  "use server";
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return { ok: false, message: "Supabase is not configured." };
+
+  // ensure the user is authenticated
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Sign in to withdraw." };
+
+  // update the enrollment status
+  const { error } = await supabase
+    .from("enrollments")
+    .update({ status: "withdrawn" })
+    .eq("id", enrollmentId);
+
+  if (error) {
+    console.error("Unable to withdraw from course", error.message);
+    return { ok: false, message: "Unable to withdraw from course." };
+  }
+
+  revalidatePath("/dashboard");
+  return { ok: true, message: "Withdrawn from course." };
+}
+
+/**
+ * Update the grade for an enrollment.
+ * Only admins or instructors can assign grades.
+ * Grade must be between 0 and 100.
+ */
+export async function updateEnrollmentGrade(enrollmentId: string, grade: number) {
+  "use server";
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return { ok: false, message: "Supabase is not configured." };
+
+  const session = await getCurrentProfile();
+  if (!session?.user) return { ok: false, message: "Sign in to update grade." };
+
+  const isAdminOrInstructor =
+    session.roles?.includes("admin") ||
+    session.roles?.includes("instructor") ||
+    session.profile.role === "admin" ||
+    session.profile.role === "instructor";
+
+  if (!isAdminOrInstructor) {
+    return { ok: false, message: "Only admins or instructors can update grades." };
+  }
+
+  const clampedGrade = Math.max(0, Math.min(100, Number(grade)));
+
+  const { error } = await supabase
+    .from("enrollments")
+    .update({ grade: clampedGrade })
+    .eq("id", enrollmentId);
+
+  if (error) {
+    console.error("Unable to update grade", error.message);
+    return { ok: false, message: "Unable to update grade." };
+  }
+
+  revalidatePath("/admin");
+  return { ok: true, message: "Grade updated." };
+}
