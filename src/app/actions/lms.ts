@@ -338,3 +338,22 @@ export async function updateInstructorProfile(
   revalidatePath("/admin");
   return { ok: true, message: "Instructor profile updated." };
 }
+
+type CourseTemplateState = { ok: boolean; message: string };
+
+export async function createCourseTemplate(
+  _prevState: CourseTemplateState,
+  formData: FormData,
+): Promise<CourseTemplateState> {
+  "use server";
+  const title = String(formData.get("courseTitle") || "").trim();
+  const components = formData.getAll("components").map((value) => String(value)).filter(Boolean);
+
+  if (!title) return { ok: false, message: "Add a course title to continue." };
+  if (!components.length) return { ok: false, message: "Select at least one component." };
+
+  return {
+    ok: false,
+    message: "Course templates are not configured yet. Please create courses manually for now.",
+  };
+}
