@@ -19,14 +19,16 @@ export default async function AdminPage() {
       .filter((pathway): pathway is string => Boolean(pathway)) || [];
   const pathways = Array.from(new Set(basePathways)).sort((a, b) => a.localeCompare(b));
 
-  let instructors: Array<{
+  type InstructorProfile = {
     id: string;
     display_name: string | null;
     email: string | null;
     role: string | null;
     academic_bio: string | null;
     credentials: string | null;
-  }> = [];
+  };
+
+  let instructors: InstructorProfile[] = [];
   if (supabase) {
     const { data: profileInstructors } = await supabase
       .from("profiles")
@@ -48,9 +50,21 @@ export default async function AdminPage() {
           .in("id", roleProfileIds)
       : { data: [] };
 
-    const merged = new Map<string, { id: string; display_name: string | null; email: string | null; role: string | null }>();
-    (profileInstructors || []).forEach((profile) => merged.set(profile.id, profile));
-    (roleProfiles || []).forEach((profile) => merged.set(profile.id, profile));
+    const merged = new Map<string, InstructorProfile>();
+    (profileInstructors || []).forEach((profile) =>
+      merged.set(profile.id, {
+        ...profile,
+        academic_bio: profile.academic_bio ?? null,
+        credentials: profile.credentials ?? null,
+      }),
+    );
+    (roleProfiles || []).forEach((profile) =>
+      merged.set(profile.id, {
+        ...profile,
+        academic_bio: profile.academic_bio ?? null,
+        credentials: profile.credentials ?? null,
+      }),
+    );
     instructors = Array.from(merged.values()).sort((a, b) =>
       (a.display_name || a.email || "").localeCompare(b.display_name || b.email || ""),
     );
