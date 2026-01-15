@@ -43,12 +43,22 @@ export interface ProfileSession {
   roles: string[];
 }
 
+const allowedRoles = ["admin", "instructor", "faculty", "student", "applicant"] as const;
+
+const normalizeRole = (role?: string | null) => {
+  if (!role) return null;
+  const normalized = role.toLowerCase();
+  return allowedRoles.includes(normalized as (typeof allowedRoles)[number])
+    ? (normalized as ProfileRow["role"])
+    : null;
+};
+
 export async function getCurrentProfile(): Promise<ProfileSession | null> {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return null;
 
   const profileSelect =
-    "id, display_name, role, first_name, last_name, email, phone, mailing_address_line1, mailing_address_line2, mailing_city, mailing_state, mailing_postal_code, mailing_country, created_at" as const;
+    "id, display_name, role, first_name, last_name, email, phone, mailing_address_line1, mailing_address_line2, mailing_city, mailing_state, mailing_postal_code, mailing_country, academic_bio, credentials, created_at" as const;
 
   const {
     data: { user },
@@ -62,6 +72,14 @@ export async function getCurrentProfile(): Promise<ProfileSession | null> {
     .eq("id", user.id)
     .maybeSingle();
 
+  const userbaseQuery = supabase.from("userbase").select("id, email, role").limit(1);
+  const { data: userbase } =
+    user.email
+      ? await userbaseQuery.or(`id.eq.${user.id},email.eq.${user.email}`).maybeSingle()
+      : await userbaseQuery.eq("id", user.id).maybeSingle();
+  const userbaseRole = normalizeRole(userbase?.role);
+  const profileRole = normalizeRole(profile?.role);
+
   const { data: roleRows } = await supabase
     .from("profile_roles")
     .select("roles!inner(slug)")
@@ -71,26 +89,41 @@ export async function getCurrentProfile(): Promise<ProfileSession | null> {
     roleRows
       ?.map((row: { roles?: { slug?: string | null } | null }) => row.roles?.slug)
       .filter((slug): slug is string => Boolean(slug)) || [];
+  if (userbaseRole && !roles.includes(userbaseRole)) {
+    roles.push(userbaseRole);
+  }
+  const effectiveRole = userbaseRole || profileRole || "student";
+
+  const profileData =
+    profile ||
+    ({
+      id: user.id,
+      display_name: null,
+      role: effectiveRole,
+      first_name: null,
+      last_name: null,
+      email: userbase?.email || user.email || null,
+      phone: null,
+      mailing_address_line1: null,
+      mailing_address_line2: null,
+      mailing_city: null,
+      mailing_state: null,
+      mailing_postal_code: null,
+      mailing_country: null,
+      academic_bio: null,
+      credentials: null,
+      created_at: null,
+    } satisfies ProfileRow);
 
   return {
     user,
-    profile:
-      profile || {
-        id: user.id,
-        display_name: null,
-        role: "student",
-        first_name: null,
-        last_name: null,
-        email: user.email || null,
-        phone: null,
-        mailing_address_line1: null,
-        mailing_address_line2: null,
-        mailing_city: null,
-        mailing_state: null,
-        mailing_postal_code: null,
-        mailing_country: null,
-        created_at: null,
-      },
+    profile: {
+      ...profileData,
+      role: effectiveRole,
+      email: profileData.email || userbase?.email || user.email || null,
+      academic_bio: profileData.academic_bio ?? null,
+      credentials: profileData.credentials ?? null,
+    },
     roles,
   };
 }

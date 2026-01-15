@@ -62,7 +62,6 @@ export default async function CompleteProfilePage() {
               id="displayName"
               name="displayName"
               defaultValue={session?.profile?.display_name || ""}
-              required
               className="w-full rounded-xl border border-[rgba(20,34,64,0.12)] bg-white px-3 py-2 focus:border-[var(--accent)] focus:outline-none"
               placeholder="Alex Rivera"
             />

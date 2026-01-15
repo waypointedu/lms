@@ -3,8 +3,8 @@
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 
+import { getCurrentProfile } from "@/lib/queries";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
-import { getServiceRoleClient } from "@/lib/supabase";
 import { startOfWeek } from "@/lib/date-utils";
 import type { Json } from "@/types/supabase";
 
@@ -212,29 +212,129 @@ export async function signOut() {
   revalidatePath("/dashboard");
 }
 
-async function logAudit(action: string, target: string | null, actor: string | null) {
-  const service = getServiceRoleClient();
-  if (!service) return;
-  await service.from("audit_events").insert({ action, target, actor });
-}
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
 
-export async function issueCertificate(courseId: string, userId: string) {
-  const service = getServiceRoleClient();
-  if (!service) return { ok: false, message: "Service role not configured." };
+type CourseBuilderState = { ok: boolean; message: string; courseId?: string; courseTitle?: string };
 
-  const verification_code = randomUUID();
-  const { error } = await service.from("certificates").insert({
-    course_id: courseId,
-    user_id: userId,
-    verification_code,
-  });
+export async function createCourse(
+  _prevState: CourseBuilderState,
+  formData: FormData,
+): Promise<CourseBuilderState> {
+  "use server";
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return { ok: false, message: "Supabase is not configured." };
 
-  if (error) {
-    console.error("Unable to issue certificate", error.message);
-    return { ok: false, message: "Issuance failed. Check RLS and IDs." };
+  const session = await getCurrentProfile();
+  if (!session?.user) return { ok: false, message: "Sign in to create a course." };
+
+  const isAdmin = session.roles.includes("admin") || session.profile.role === "admin";
+  if (!isAdmin) return { ok: false, message: "Only admins can create courses." };
+
+  const title = String(formData.get("courseTitle") || "").trim();
+  const description = String(formData.get("courseDescription") || "").trim();
+  const topic = String(formData.get("courseTopic") || "").trim();
+  const prerequisites = formData.getAll("prerequisites").map((value) => String(value)).filter(Boolean);
+  const pathways = formData.getAll("pathways").map((value) => String(value)).filter(Boolean);
+
+  if (!title) return { ok: false, message: "Add a course title to continue." };
+
+  const slug = `${slugify(title)}-${randomUUID().slice(0, 6)}`;
+  const primaryPathway = pathways[0] || null;
+
+  const { data: course, error: courseError } = await supabase
+    .from("courses")
+    .insert({
+      slug,
+      title,
+      description: description || null,
+      topic: topic || null,
+      pathway: primaryPathway,
+      published: false,
+    })
+    .select("id, title")
+    .single();
+
+  if (courseError || !course) {
+    console.error("Unable to create course", courseError?.message);
+    return { ok: false, message: "Unable to create the course." };
   }
 
-  await logAudit("issue_certificate", courseId, userId);
+  if (prerequisites.length) {
+    const { error: prerequisitesError } = await supabase.from("course_prerequisites").insert(
+      prerequisites.map((courseId) => ({
+        course_id: course.id,
+        prerequisite_course_id: courseId,
+      })),
+    );
+    if (prerequisitesError) {
+      console.error("Unable to save prerequisites", prerequisitesError.message);
+      return { ok: false, message: "Course created, but prerequisites could not be saved." };
+    }
+  }
+
+  if (pathways.length) {
+    const { error: pathwaysError } = await supabase.from("course_pathways").insert(
+      pathways.map((pathway) => ({
+        course_id: course.id,
+        pathway,
+      })),
+    );
+    if (pathwaysError) {
+      console.error("Unable to save pathways", pathwaysError.message);
+      return { ok: false, message: "Course created, but pathways could not be saved." };
+    }
+  }
+
+  revalidatePath("/admin");
   revalidatePath("/dashboard");
-  return { ok: true, message: "Certificate issued." };
+  return {
+    ok: true,
+    message: `Created "${course.title}".`,
+    courseId: course.id,
+    courseTitle: course.title,
+  };
+}
+
+type InstructorProfileState = { ok: boolean; message: string };
+
+export async function updateInstructorProfile(
+  _prevState: InstructorProfileState,
+  formData: FormData,
+): Promise<InstructorProfileState> {
+  "use server";
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return { ok: false, message: "Supabase is not configured." };
+
+  const session = await getCurrentProfile();
+  if (!session?.user) return { ok: false, message: "Sign in to update instructors." };
+
+  const isAdmin = session.roles.includes("admin") || session.profile.role === "admin";
+  if (!isAdmin) return { ok: false, message: "Only admins can update instructors." };
+
+  const instructorId = String(formData.get("instructorId") || "").trim();
+  const academicBio = String(formData.get("academicBio") || "").trim();
+  const credentials = String(formData.get("credentials") || "").trim();
+
+  if (!instructorId) return { ok: false, message: "Select an instructor first." };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      academic_bio: academicBio || null,
+      credentials: credentials || null,
+    })
+    .eq("id", instructorId);
+
+  if (error) {
+    console.error("Unable to update instructor", error.message);
+    return { ok: false, message: "Unable to save instructor profile." };
+  }
+
+  revalidatePath("/admin");
+  return { ok: true, message: "Instructor profile updated." };
 }
