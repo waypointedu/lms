@@ -475,6 +475,8 @@ export interface Database {
           mailing_postal_code: string | null;
           mailing_country: string | null;
           role: "admin" | "instructor" | "faculty" | "student" | "applicant";
+          academic_bio: string | null;
+          credentials: string | null;
           created_at: string | null;
         };
         Insert: {
@@ -491,6 +493,8 @@ export interface Database {
           mailing_postal_code?: string | null;
           mailing_country?: string | null;
           role?: "admin" | "instructor" | "faculty" | "student" | "applicant";
+          academic_bio?: string | null;
+          credentials?: string | null;
           created_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;

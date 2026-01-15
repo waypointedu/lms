@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useFormState } from "react-dom";
 
-import { createCourse } from "@/app/actions/lms";
+import { createCourse, updateInstructorProfile } from "@/app/actions/lms";
 
 type CourseOption = {
   id: string;
@@ -15,6 +15,8 @@ type InstructorOption = {
   displayName: string;
   email: string | null;
   role: string | null;
+  academicBio: string | null;
+  credentials: string | null;
 };
 
 type CourseBuilderProps = {
@@ -23,7 +25,9 @@ type CourseBuilderProps = {
   instructors: InstructorOption[];
 };
 
-const initialState = { ok: false, message: "" };
+type CourseFormState = { ok: boolean; message: string; courseId?: string; courseTitle?: string };
+
+const initialState: CourseFormState = { ok: false, message: "", courseId: undefined, courseTitle: undefined };
 
 const defaultWeekSections = [
   "Overview",
@@ -35,13 +39,29 @@ const defaultWeekSections = [
 ];
 
 export function CourseBuilder({ courses, pathways, instructors }: CourseBuilderProps) {
-  const [state, formAction] = useFormState(createCourse, initialState);
+  const [state, formAction] = useFormState<CourseFormState>(createCourse, initialState);
+  const [profileState, profileAction] = useFormState(updateInstructorProfile, initialState);
   const [selectedInstructor, setSelectedInstructor] = useState<string>("");
+  const [weekSections, setWeekSections] = useState<Record<number, string[]>>(() => ({
+    1: [...defaultWeekSections],
+    2: [...defaultWeekSections],
+    3: [...defaultWeekSections],
+  }));
   const instructorMap = useMemo(
     () => new Map(instructors.map((instructor) => [instructor.id, instructor])),
     [instructors],
   );
   const activeInstructor = selectedInstructor ? instructorMap.get(selectedInstructor) : null;
+
+  const toggleWeekSection = (week: number, section: string) => {
+    setWeekSections((prev) => {
+      const current = prev[week] || [];
+      const next = current.includes(section)
+        ? current.filter((item) => item !== section)
+        : [...current, section];
+      return { ...prev, [week]: next };
+    });
+  };
 
   return (
     <div className="space-y-10">
@@ -170,11 +190,53 @@ export function CourseBuilder({ courses, pathways, instructors }: CourseBuilderP
                 ))}
               </select>
               {activeInstructor ? (
-                <div className="rounded-xl border border-[rgba(20,34,64,0.08)] bg-white px-4 py-3 text-sm text-[var(--muted)]">
-                  <p className="font-semibold text-[var(--ink)]">{activeInstructor.displayName}</p>
-                  <p>{activeInstructor.email || "No email on file"}</p>
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-[rgba(20,34,64,0.08)] bg-white px-4 py-3 text-sm text-[var(--muted)]">
+                    <p className="font-semibold text-[var(--ink)]">{activeInstructor.displayName}</p>
+                    <p>{activeInstructor.email || "No email on file"}</p>
+                  </div>
+                  <form key={activeInstructor.id} className="space-y-3" action={profileAction}>
+                    <input type="hidden" name="instructorId" value={activeInstructor.id} />
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-[var(--ink)]" htmlFor="academicBio">
+                        Academic bio
+                      </label>
+                      <textarea
+                        id="academicBio"
+                        name="academicBio"
+                        rows={4}
+                        defaultValue={activeInstructor.academicBio || ""}
+                        className="w-full rounded-xl border border-[rgba(20,34,64,0.12)] bg-white px-3 py-2 focus:border-[var(--accent)] focus:outline-none"
+                        placeholder="Add academic bio details."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-[var(--ink)]" htmlFor="credentials">
+                        Credentials
+                      </label>
+                      <input
+                        id="credentials"
+                        name="credentials"
+                        defaultValue={activeInstructor.credentials || ""}
+                        className="w-full rounded-xl border border-[rgba(20,34,64,0.12)] bg-white px-3 py-2 focus:border-[var(--accent)] focus:outline-none"
+                        placeholder="PhD, M.Div, LCSW, etc."
+                      />
+                    </div>
+                    {profileState.message ? (
+                      <p className={`text-sm ${profileState.ok ? "text-emerald-600" : "text-rose-600"}`}>
+                        {profileState.message}
+                      </p>
+                    ) : null}
+                    <button type="submit" className="button-secondary w-fit">
+                      Save instructor profile
+                    </button>
+                  </form>
                 </div>
-              ) : null}
+              ) : (
+                <p className="text-sm text-[var(--muted)]">
+                  Select an instructor to view or update their profile details.
+                </p>
+              )}
             </div>
 
             <div className="card p-6 space-y-4">
@@ -204,19 +266,34 @@ export function CourseBuilder({ courses, pathways, instructors }: CourseBuilderP
                 <div key={`week-card-${week}`} className="rounded-xl border border-[rgba(20,34,64,0.08)] p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <h4 className="font-semibold text-[var(--ink)]">Week {week}</h4>
-                    <button type="button" className="text-sm text-[var(--accent-deep)]">
-                      Add section
-                    </button>
+                    <span className="text-xs text-[var(--muted)]">Optional sections</span>
+                  </div>
+                  <div className="flex flex-wrap gap-3 text-xs text-[var(--muted)]">
+                    {defaultWeekSections.map((section) => (
+                      <label key={`${week}-${section}`} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={(weekSections[week] || []).includes(section)}
+                          onChange={() => toggleWeekSection(week, section)}
+                          className="h-4 w-4 rounded border border-[rgba(20,34,64,0.25)]"
+                        />
+                        {section}
+                      </label>
+                    ))}
                   </div>
                   <div className="flex flex-wrap gap-2 text-xs text-[var(--muted)]">
-                    {defaultWeekSections.map((section) => (
-                      <span
-                        key={`${week}-${section}`}
-                        className="rounded-full border border-[rgba(20,34,64,0.12)] px-3 py-1 bg-white"
-                      >
-                        {section}
-                      </span>
-                    ))}
+                    {(weekSections[week] || []).length ? (
+                      (weekSections[week] || []).map((section) => (
+                        <span
+                          key={`${week}-${section}-active`}
+                          className="rounded-full border border-[rgba(20,34,64,0.12)] px-3 py-1 bg-white"
+                        >
+                          {section}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-[var(--muted)]">No sections selected.</span>
+                    )}
                   </div>
                   <textarea
                     rows={3}

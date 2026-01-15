@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 
 import { getCurrentProfile } from "@/lib/queries";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
-import { getServiceRoleClient } from "@/lib/supabase";
 import { startOfWeek } from "@/lib/date-utils";
 import type { Json } from "@/types/supabase";
 
@@ -301,29 +300,41 @@ export async function createCourse(
   };
 }
 
-async function logAudit(action: string, target: string | null, actor: string | null) {
-  const service = getServiceRoleClient();
-  if (!service) return;
-  await service.from("audit_events").insert({ action, target, actor });
-}
+type InstructorProfileState = { ok: boolean; message: string };
 
-export async function issueCertificate(courseId: string, userId: string) {
-  const service = getServiceRoleClient();
-  if (!service) return { ok: false, message: "Service role not configured." };
+export async function updateInstructorProfile(
+  _prevState: InstructorProfileState,
+  formData: FormData,
+): Promise<InstructorProfileState> {
+  "use server";
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return { ok: false, message: "Supabase is not configured." };
 
-  const verification_code = randomUUID();
-  const { error } = await service.from("certificates").insert({
-    course_id: courseId,
-    user_id: userId,
-    verification_code,
-  });
+  const session = await getCurrentProfile();
+  if (!session?.user) return { ok: false, message: "Sign in to update instructors." };
+
+  const isAdmin = session.roles.includes("admin") || session.profile.role === "admin";
+  if (!isAdmin) return { ok: false, message: "Only admins can update instructors." };
+
+  const instructorId = String(formData.get("instructorId") || "").trim();
+  const academicBio = String(formData.get("academicBio") || "").trim();
+  const credentials = String(formData.get("credentials") || "").trim();
+
+  if (!instructorId) return { ok: false, message: "Select an instructor first." };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      academic_bio: academicBio || null,
+      credentials: credentials || null,
+    })
+    .eq("id", instructorId);
 
   if (error) {
-    console.error("Unable to issue certificate", error.message);
-    return { ok: false, message: "Issuance failed. Check RLS and IDs." };
+    console.error("Unable to update instructor", error.message);
+    return { ok: false, message: "Unable to save instructor profile." };
   }
 
-  await logAudit("issue_certificate", courseId, userId);
-  revalidatePath("/dashboard");
-  return { ok: true, message: "Certificate issued." };
+  revalidatePath("/admin");
+  return { ok: true, message: "Instructor profile updated." };
 }

@@ -19,11 +19,18 @@ export default async function AdminPage() {
       .filter((pathway): pathway is string => Boolean(pathway)) || [];
   const pathways = Array.from(new Set(basePathways)).sort((a, b) => a.localeCompare(b));
 
-  let instructors: Array<{ id: string; display_name: string | null; email: string | null; role: string | null }> = [];
+  let instructors: Array<{
+    id: string;
+    display_name: string | null;
+    email: string | null;
+    role: string | null;
+    academic_bio: string | null;
+    credentials: string | null;
+  }> = [];
   if (supabase) {
     const { data: profileInstructors } = await supabase
       .from("profiles")
-      .select("id, display_name, email, role")
+      .select("id, display_name, email, role, academic_bio, credentials")
       .in("role", ["admin", "instructor"]);
 
     const { data: roleAssignments } = await supabase
@@ -35,7 +42,10 @@ export default async function AdminPage() {
         ?.map((row: { profile_id: string }) => row.profile_id)
         .filter(Boolean) || [];
     const { data: roleProfiles } = roleProfileIds.length
-      ? await supabase.from("profiles").select("id, display_name, email, role").in("id", roleProfileIds)
+      ? await supabase
+          .from("profiles")
+          .select("id, display_name, email, role, academic_bio, credentials")
+          .in("id", roleProfileIds)
       : { data: [] };
 
     const merged = new Map<string, { id: string; display_name: string | null; email: string | null; role: string | null }>();
@@ -71,6 +81,8 @@ export default async function AdminPage() {
               displayName: instructor.display_name || instructor.email || "Instructor",
               email: instructor.email,
               role: instructor.role,
+              academicBio: instructor.academic_bio,
+              credentials: instructor.credentials,
             }))}
           />
         </div>
