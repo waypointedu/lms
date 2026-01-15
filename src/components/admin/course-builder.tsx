@@ -26,8 +26,10 @@ type CourseBuilderProps = {
 };
 
 type CourseFormState = { ok: boolean; message: string; courseId?: string; courseTitle?: string };
+type InstructorFormState = { ok: boolean; message: string };
 
 const initialState: CourseFormState = { ok: false, message: "", courseId: undefined, courseTitle: undefined };
+const initialProfileState: InstructorFormState = { ok: false, message: "" };
 
 const defaultWeekSections = [
   "Overview",
@@ -39,8 +41,11 @@ const defaultWeekSections = [
 ];
 
 export function CourseBuilder({ courses, pathways, instructors }: CourseBuilderProps) {
-  const [state, formAction] = useFormState<CourseFormState>(createCourse, initialState);
-  const [profileState, profileAction] = useFormState(updateInstructorProfile, initialState);
+  const [state, formAction] = useFormState<CourseFormState, FormData>(createCourse, initialState);
+  const [profileState, profileAction] = useFormState<InstructorFormState, FormData>(
+    updateInstructorProfile,
+    initialProfileState,
+  );
   const [selectedInstructor, setSelectedInstructor] = useState<string>("");
   const [weekSections, setWeekSections] = useState<Record<number, string[]>>(() => ({
     1: [...defaultWeekSections],

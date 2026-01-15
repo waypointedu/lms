@@ -58,7 +58,7 @@ export async function getCurrentProfile(): Promise<ProfileSession | null> {
   if (!supabase) return null;
 
   const profileSelect =
-    "id, display_name, role, first_name, last_name, email, phone, mailing_address_line1, mailing_address_line2, mailing_city, mailing_state, mailing_postal_code, mailing_country, created_at" as const;
+    "id, display_name, role, first_name, last_name, email, phone, mailing_address_line1, mailing_address_line2, mailing_city, mailing_state, mailing_postal_code, mailing_country, academic_bio, credentials, created_at" as const;
 
   const {
     data: { user },
@@ -110,6 +110,8 @@ export async function getCurrentProfile(): Promise<ProfileSession | null> {
       mailing_state: null,
       mailing_postal_code: null,
       mailing_country: null,
+      academic_bio: null,
+      credentials: null,
       created_at: null,
     } satisfies ProfileRow);
 
@@ -119,6 +121,8 @@ export async function getCurrentProfile(): Promise<ProfileSession | null> {
       ...profileData,
       role: effectiveRole,
       email: profileData.email || userbase?.email || user.email || null,
+      academic_bio: profileData.academic_bio ?? null,
+      credentials: profileData.credentials ?? null,
     },
     roles,
   };
