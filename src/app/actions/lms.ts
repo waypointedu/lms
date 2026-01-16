@@ -374,9 +374,10 @@ export async function publishCourseAsTemplate(courseId: string) {
   const isAdmin = session.roles?.includes("admin") || session.profile.role === "admin";
   if (!isAdmin) return { ok: false, message: "Only admins can publish templates." };
 
-  const { error } = await supabase.from("courses")
-    .update({ is_template: true })
-    .eq("id", courseId);
+const { error } = await supabase
+  .from("courses")
+  .update({ is_template: true } as any)
+  .eq("id", courseId);
 
   if (error) {
     console.error("Unable to publish course as template", error.message);
