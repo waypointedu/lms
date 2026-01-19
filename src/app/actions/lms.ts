@@ -454,16 +454,18 @@ export async function enrollInCourseInstance(courseInstanceId: string) {
 
   const {
     data: { user },
-    } = await supabase.auth.getUser();
-  
+  } = await supabase.auth.getUser();
+
   if (!user) return { ok: false, message: "Sign in to enroll." };
 
-  const { error } = await supabase.from  // @ts-ignore("enrollments"
-                                       ).insert({
-    user_id: user.id,
-    course_instance_id: courseInstanceId,
-    status: "active",
-    );
+  const { error } = await supabase
+    // @ts-ignore
+    .from("enrollments")
+    .insert({
+      user_id: user.id,
+      course_instance_id: courseInstanceId,
+      status: "active",
+    });
 
   if (error) {
     console.error("Unable to enroll in course instance", error.message);
