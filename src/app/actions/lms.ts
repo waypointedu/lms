@@ -374,10 +374,11 @@ export async function publishCourseAsTemplate(courseId: string) {
   const isAdmin = session.roles?.includes("admin") || session.profile.role === "admin";
   if (!isAdmin) return { ok: false, message: "Only admins can publish templates." };
 
-const { error } = await supabase
-  .from("courses")
-  .update({ is_template: true } as any)
-  .eq("id", courseId);
+  const { error } = await supabase
+    .from("courses")
+    // @ts-expect-error is_template is added via migration but may be missing from generated types.
+    .update({ is_template: true })
+    .eq("id", courseId);
 
   if (error) {
     console.error("Unable to publish course as template", error.message);
@@ -429,7 +430,7 @@ export async function scheduleCourseInstance(
 
   const { data, error } = await supabase
     .from("course_instances")
-      // @ts-ignore
+    // @ts-expect-error course_instances is added via migration but may be missing from generated types.
     .insert(instance)
     .select("id")
     .single();
@@ -439,8 +440,9 @@ export async function scheduleCourseInstance(
     return { ok: false, message: "Unable to schedule course instance." };
   }
 
+  const instanceId = (data as { id: string } | null)?.id;
   revalidatePath("/admin");
-  return { ok: true, message: "Course instance scheduled.", instanceId: data.id };
+  return { ok: true, message: "Course instance scheduled.", instanceId };
 }
 
 /**
@@ -459,7 +461,7 @@ export async function enrollInCourseInstance(courseInstanceId: string) {
   if (!user) return { ok: false, message: "Sign in to enroll." };
 
   const { error } = await supabase
-    // @ts-ignore
+    // @ts-expect-error enrollments insert may require regenerated Supabase types.
     .from("enrollments")
     .insert({
       user_id: user.id,
