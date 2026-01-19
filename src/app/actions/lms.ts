@@ -376,7 +376,6 @@ export async function publishCourseAsTemplate(courseId: string) {
 
   const { error } = await supabase
     .from("courses")
-    // @ts-expect-error is_template is added via migration but may be missing from generated types.
     .update({ is_template: true })
     .eq("id", courseId);
 
@@ -430,7 +429,6 @@ export async function scheduleCourseInstance(
 
   const { data, error } = await supabase
     .from("course_instances")
-    // @ts-expect-error course_instances is added via migration but may be missing from generated types.
     .insert(instance)
     .select("id")
     .single();
@@ -460,14 +458,23 @@ export async function enrollInCourseInstance(courseInstanceId: string) {
 
   if (!user) return { ok: false, message: "Sign in to enroll." };
 
-  const { error } = await supabase
-    // @ts-expect-error enrollments insert may require regenerated Supabase types.
-    .from("enrollments")
-    .insert({
-      user_id: user.id,
-      course_instance_id: courseInstanceId,
-      status: "active",
-    });
+  const { data: instanceData, error: instanceError } = await supabase
+    .from("course_instances")
+    .select("course_id")
+    .eq("id", courseInstanceId)
+    .single();
+
+  if (instanceError || !instanceData) {
+    console.error("Unable to find course instance", instanceError?.message);
+    return { ok: false, message: "Unable to enroll in course." };
+  }
+
+  const { error } = await supabase.from("enrollments").insert({
+    user_id: user.id,
+    course_id: instanceData.course_id,
+    course_instance_id: courseInstanceId,
+    status: "active",
+  });
 
   if (error) {
     console.error("Unable to enroll in course instance", error.message);
@@ -496,7 +503,7 @@ export async function withdrawFromCourse(enrollmentId: string) {
   // update the enrollment status
   const { error } = await supabase
     .from("enrollments")
-    .update({ status: "withdrawn" })
+    .update({ status: "paused" })
     .eq("id", enrollmentId);
 
   if (error) {
