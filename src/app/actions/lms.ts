@@ -429,7 +429,7 @@ export async function scheduleCourseInstance(
 
   const { data, error } = await supabase
     .from("course_instances")
-      // @ts-ignore
+    // @ts-ignore
     .insert(instance)
     .select("id")
     .single();
@@ -439,8 +439,9 @@ export async function scheduleCourseInstance(
     return { ok: false, message: "Unable to schedule course instance." };
   }
 
+  const instanceId = (data as { id: string } | null)?.id;
   revalidatePath("/admin");
-  return { ok: true, message: "Course instance scheduled.", instanceId: data.id };
+  return { ok: true, message: "Course instance scheduled.", instanceId };
 }
 
 /**
