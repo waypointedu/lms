@@ -219,6 +219,7 @@ export interface Database {
           duration_weeks: number | null;
           language: string | null;
           published: boolean | null;
+          is_template: boolean;
           pathway: string | null;
           topic: string | null;
           title_es: string | null;
@@ -233,6 +234,7 @@ export interface Database {
           duration_weeks?: number | null;
           language?: string | null;
           published?: boolean | null;
+          is_template?: boolean;
           pathway?: string | null;
           topic?: string | null;
           title_es?: string | null;
@@ -240,6 +242,32 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["courses"]["Insert"]>;
         Relationships: [];
+      };
+      course_instances: {
+        Row: {
+          id: string;
+          course_id: string;
+          slug: string;
+          title: string;
+          term: string | null;
+          start_date: string | null;
+          end_date: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          course_id: string;
+          slug: string;
+          title: string;
+          term?: string | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          created_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["course_instances"]["Insert"]>;
+        Relationships: [
+          { foreignKeyName: "course_instances_course_id_fkey"; columns: ["course_id"]; referencedRelation: "courses"; referencedColumns: ["id"] },
+        ];
       };
       course_pathways: {
         Row: {
@@ -319,7 +347,9 @@ export interface Database {
           id: string;
           user_id: string;
           course_id: string;
+          course_instance_id: string | null;
           status: "active" | "completed" | "paused";
+          grade: number | null;
           enrolled_at: string | null;
           cohort_label: string | null;
           starts_on: string | null;
@@ -329,7 +359,9 @@ export interface Database {
           id?: string;
           user_id: string;
           course_id: string;
+          course_instance_id?: string | null;
           status?: "active" | "completed" | "paused";
+          grade?: number | null;
           enrolled_at?: string | null;
           cohort_label?: string | null;
           starts_on?: string | null;
@@ -337,6 +369,7 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["enrollments"]["Insert"]>;
         Relationships: [
+          { foreignKeyName: "enrollments_course_instance_id_fkey"; columns: ["course_instance_id"]; referencedRelation: "course_instances"; referencedColumns: ["id"] },
           { foreignKeyName: "enrollments_course_id_fkey"; columns: ["course_id"]; referencedRelation: "courses"; referencedColumns: ["id"] },
           { foreignKeyName: "enrollments_user_id_fkey"; columns: ["user_id"]; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];

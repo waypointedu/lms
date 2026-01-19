@@ -374,10 +374,10 @@ export async function publishCourseAsTemplate(courseId: string) {
   const isAdmin = session.roles?.includes("admin") || session.profile.role === "admin";
   if (!isAdmin) return { ok: false, message: "Only admins can publish templates." };
 
-const { error } = await supabase
-  .from("courses")
-  .update({ is_template: true } as any)
-  .eq("id", courseId);
+  const { error } = await supabase
+    .from("courses")
+    .update({ is_template: true })
+    .eq("id", courseId);
 
   if (error) {
     console.error("Unable to publish course as template", error.message);
@@ -429,7 +429,6 @@ export async function scheduleCourseInstance(
 
   const { data, error } = await supabase
     .from("course_instances")
-      // @ts-ignore
     .insert(instance)
     .select("id")
     .single();
@@ -439,8 +438,9 @@ export async function scheduleCourseInstance(
     return { ok: false, message: "Unable to schedule course instance." };
   }
 
+  const instanceId = (data as { id: string } | null)?.id;
   revalidatePath("/admin");
-  return { ok: true, message: "Course instance scheduled.", instanceId: data.id };
+  return { ok: true, message: "Course instance scheduled.", instanceId };
 }
 
 /**
@@ -454,16 +454,27 @@ export async function enrollInCourseInstance(courseInstanceId: string) {
 
   const {
     data: { user },
-    } = await supabase.auth.getUser();
-  
+  } = await supabase.auth.getUser();
+
   if (!user) return { ok: false, message: "Sign in to enroll." };
 
-  const { error } = await supabase.from  // @ts-ignore("enrollments"
-                                       ).insert({
+  const { data: instanceData, error: instanceError } = await supabase
+    .from("course_instances")
+    .select("course_id")
+    .eq("id", courseInstanceId)
+    .single();
+
+  if (instanceError || !instanceData) {
+    console.error("Unable to find course instance", instanceError?.message);
+    return { ok: false, message: "Unable to enroll in course." };
+  }
+
+  const { error } = await supabase.from("enrollments").insert({
     user_id: user.id,
+    course_id: instanceData.course_id,
     course_instance_id: courseInstanceId,
     status: "active",
-    );
+  });
 
   if (error) {
     console.error("Unable to enroll in course instance", error.message);
@@ -492,7 +503,7 @@ export async function withdrawFromCourse(enrollmentId: string) {
   // update the enrollment status
   const { error } = await supabase
     .from("enrollments")
-    .update({ status: "withdrawn" })
+    .update({ status: "paused" })
     .eq("id", enrollmentId);
 
   if (error) {
