@@ -1,10 +1,8 @@
-import type { Metadata } from "next";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: "Waypoint LMS",
-  description:
-    "Waypoint LMS delivers a GitHub-centered learning experience with Supabase-powered auth, courses, and progress tracking.",
+export const metadata = {
+  title: "LMS Scaffold",
+  description: "Phase 0 scaffold for the LMS",
 };
 
 export default function RootLayout({
@@ -14,7 +12,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body>{children}</body>
     </html>
   );
 }
