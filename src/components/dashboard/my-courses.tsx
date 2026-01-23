@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 import { getSupabaseClient } from "@/lib/supabase/client";
 import {
@@ -180,7 +181,9 @@ export function MyCourses({
                   <li>Lessons</li>
                   <li>Discussion</li>
                   <li>Current week</li>
-                  <li>Course link (coming soon)</li>
+                  <li>
+                    <Link href={`/courses/${course.id}`}>Go to course</Link>
+                  </li>
                 </ul>
               )}
             </article>
