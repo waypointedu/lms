@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 import { SessionGate } from "@/components/auth/session-gate";
 import { DiscussionPanel } from "@/components/course/discussion-panel";
+import { SubmissionPanel } from "@/components/course/submission-panel";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import {
   ContentItemRow,
@@ -270,6 +271,15 @@ export default function CoursePage() {
                   <DiscussionPanel
                     courseId={activeItem.course_id}
                     weekId={activeItem.week_id}
+                    contentItemId={activeItem.id}
+                  />
+                </div>
+              )}
+
+              {activeItem.type === "assignment" && (
+                <div style={{ marginTop: 16 }}>
+                  <SubmissionPanel
+                    courseId={activeItem.course_id}
                     contentItemId={activeItem.id}
                   />
                 </div>
