@@ -61,7 +61,7 @@ export function GradebookPanel({ mode }: GradebookPanelProps) {
   const loadInstructorGrades = async (currentUserId: string) => {
     const supabaseClient = getSupabaseClient();
     const { data, error } = await supabaseClient
-      .from("course_instructors")
+      .from<{ course_id: string }>("course_instructors")
       .select("course_id")
       .eq("user_id", currentUserId);
 
