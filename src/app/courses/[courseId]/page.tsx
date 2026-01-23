@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 import { SessionGate } from "@/components/auth/session-gate";
+import { DiscussionPanel } from "@/components/course/discussion-panel";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import {
   ContentItemRow,
@@ -244,14 +245,34 @@ export default function CoursePage() {
               <h2 style={{ fontSize: "1.5rem", marginTop: 4 }}>
                 {activeItem.title}
               </h2>
-              {activeItem.body && <p style={{ marginTop: 12 }}>{activeItem.body}</p>}
-              {activeItem.link_url && (
-                <p style={{ marginTop: 12 }}>
-                  Link:{" "}
-                  <a href={activeItem.link_url} target="_blank" rel="noreferrer">
-                    {activeItem.link_url}
-                  </a>
-                </p>
+              {activeItem.type !== "discussion" && (
+                <>
+                  {activeItem.body && (
+                    <p style={{ marginTop: 12 }}>{activeItem.body}</p>
+                  )}
+                  {activeItem.link_url && (
+                    <p style={{ marginTop: 12 }}>
+                      Link:{" "}
+                      <a
+                        href={activeItem.link_url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {activeItem.link_url}
+                      </a>
+                    </p>
+                  )}
+                </>
+              )}
+
+              {activeItem.type === "discussion" && (
+                <div style={{ marginTop: 16 }}>
+                  <DiscussionPanel
+                    courseId={activeItem.course_id}
+                    weekId={activeItem.week_id}
+                    contentItemId={activeItem.id}
+                  />
+                </div>
               )}
 
               {activeMedia.length > 0 && (
