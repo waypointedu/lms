@@ -108,17 +108,17 @@ export default function CoursePage() {
         )
       : null;
 
-    const itemFromParam =
-      itemParam &&
-      courseState.items.find((item) => item.id === itemParam);
+    const itemFromParam = itemParam
+      ? courseState.items.find((item) => item.id === itemParam) ?? null
+      : null;
 
-    const itemFromType =
-      itemTypeParam &&
-      courseState.items.find(
-        (item) =>
-          item.type === itemTypeParam &&
-          (!weekFromParam || item.week_id === weekFromParam.id),
-      );
+    const itemFromType = itemTypeParam
+      ? courseState.items.find(
+          (item) =>
+            item.type === itemTypeParam &&
+            (!weekFromParam || item.week_id === weekFromParam.id),
+        ) ?? null
+      : null;
 
     const defaultWeek = weekFromParam ?? courseState.weeks[0] ?? null;
     const defaultItems = defaultWeek
