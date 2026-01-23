@@ -18,7 +18,7 @@ Visit `http://localhost:3000` and `http://localhost:3000/health`.
 Copy `.env.example` to `.env.local` and set:
 
 ```
-NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+NEXT_PUBLIC_SUPABASE_URL="https://icobjtlbfzllykypqxmz.supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="public-anon-key"
 ```
 
