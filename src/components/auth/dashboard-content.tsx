@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { canEditCourse } from "@/lib/permissions";
+import { MyCourses } from "@/components/dashboard/my-courses";
 
 type PermissionState = "idle" | "checking" | "allowed" | "denied";
 
@@ -110,6 +111,8 @@ export function DashboardContent() {
           </p>
         )}
       </section>
+
+      <MyCourses />
 
       <button
         type="button"
