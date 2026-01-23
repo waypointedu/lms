@@ -61,7 +61,7 @@ export default function AdminProgramsPage() {
       const { error } = await supabaseClient.from("programs").insert({
         name: newName.trim(),
         description: newDescription.trim() || null,
-      });
+      } as any);
 
       if (error) {
         throw error;
@@ -85,7 +85,7 @@ export default function AdminProgramsPage() {
         .update({
           name: program.name,
           description: program.description,
-        })
+        } as any)
         .eq("id", program.id);
 
       if (error) {
