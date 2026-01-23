@@ -76,15 +76,13 @@ export default function AdminCoursesPage() {
 
     try {
       const supabaseClient = getSupabaseClient();
-      const { error } = await supabaseClient
-        .from("courses")
-        .insert({
-          code: newCourse.code.trim(),
-          title: newCourse.title.trim(),
-          description: newCourse.description.trim() || null,
-          program_id: newCourse.programId || null,
-          published: true,
-        } as any);
+      const { error } = await supabaseClient.from("courses").insert({
+        code: newCourse.code.trim(),
+        title: newCourse.title.trim(),
+        description: newCourse.description.trim() || null,
+        program_id: newCourse.programId || null,
+        published: true,
+      });
 
       if (error) {
         throw error;
@@ -110,7 +108,7 @@ export default function AdminCoursesPage() {
           description: course.description,
           program_id: course.program_id,
           published: course.published,
-        } as any)
+        })
         .eq("id", course.id);
 
       if (error) {

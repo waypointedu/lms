@@ -108,7 +108,7 @@ export default function AdminUsersPage() {
         user_id: instructorAssignment.userId,
         course_id: instructorAssignment.courseId,
         role: "instructor",
-      } as any);
+      });
 
       if (error) {
         throw error;
@@ -132,7 +132,7 @@ export default function AdminUsersPage() {
       const supabaseClient = getSupabaseClient();
       const { error } = await supabaseClient
         .from("course_enrollments")
-        .update({ status: "removed" } as any)
+        .update({ status: "removed" })
         .eq("user_id", enrollmentRemoval.userId)
         .eq("course_id", enrollmentRemoval.courseId);
 

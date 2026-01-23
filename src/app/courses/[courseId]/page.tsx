@@ -6,6 +6,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { SessionGate } from "@/components/auth/session-gate";
 import { DiscussionPanel } from "@/components/course/discussion-panel";
 import { SubmissionPanel } from "@/components/course/submission-panel";
+import { canEditCourse } from "@/lib/permissions";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import {
   ContentItemRow,
@@ -45,52 +46,93 @@ export default function CoursePage() {
   });
   const [activeWeekId, setActiveWeekId] = useState<string | null>(null);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const [canEdit, setCanEdit] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [newWeekNumber, setNewWeekNumber] = useState<number | "">("");
+  const [newWeekTitle, setNewWeekTitle] = useState("");
+  const [newItem, setNewItem] = useState({
+    type: "lesson",
+    title: "",
+    body: "",
+    linkUrl: "",
+    sortOrder: 1,
+    weekId: "",
+  });
 
   const courseId = params.courseId;
 
+  const loadCourse = async () => {
+    setLoadState("loading");
+    setErrorMessage(null);
+
+    try {
+      const supabaseClient = getSupabaseClient();
+      const course = await getCourseById(supabaseClient, courseId);
+
+      if (!course) {
+        setErrorMessage("Course not found.");
+        setLoadState("error");
+        return;
+      }
+
+      const [weeks, items] = await Promise.all([
+        getWeeksForCourse(supabaseClient, courseId),
+        getContentItemsForCourse(supabaseClient, courseId),
+      ]);
+
+      const media = await getMediaBlocksForItems(
+        supabaseClient,
+        items.map((item) => item.id),
+      );
+
+      setCourseState({
+        courseTitle: course.title,
+        courseCode: course.code,
+        weeks,
+        items,
+        media,
+      });
+
+      setLoadState("idle");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to load course.";
+      setErrorMessage(message);
+      setLoadState("error");
+    }
+  };
+
   useEffect(() => {
-    const loadCourse = async () => {
+    loadCourse();
+  }, [courseId]);
+
+  useEffect(() => {
+    const checkEditAccess = async () => {
       setLoadState("loading");
       setErrorMessage(null);
 
       try {
         const supabaseClient = getSupabaseClient();
-        const course = await getCourseById(supabaseClient, courseId);
+        const { data, error } = await supabaseClient.auth.getUser();
 
-        if (!course) {
-          setErrorMessage("Course not found.");
-          setLoadState("error");
+        if (error || !data.user) {
+          setCanEdit(false);
           return;
         }
 
-        const [weeks, items] = await Promise.all([
-          getWeeksForCourse(supabaseClient, courseId),
-          getContentItemsForCourse(supabaseClient, courseId),
-        ]);
-
-        const media = await getMediaBlocksForItems(
+        const allowed = await canEditCourse(
           supabaseClient,
-          items.map((item) => item.id),
+          data.user.id,
+          courseId,
         );
-
-        setCourseState({
-          courseTitle: course.title,
-          courseCode: course.code,
-          weeks,
-          items,
-          media,
-        });
-
-        setLoadState("idle");
+        setCanEdit(allowed);
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Failed to load course.";
-        setErrorMessage(message);
-        setLoadState("error");
+        setCanEdit(false);
       }
     };
 
-    loadCourse();
+    checkEditAccess();
   }, [courseId]);
 
   useEffect(() => {
@@ -159,6 +201,166 @@ export default function CoursePage() {
   const handleItemSelect = (item: ContentItemRow) => {
     setActiveItemId(item.id);
     router.replace(`/courses/${courseId}?week=${activeWeek?.week_number}&item=${item.type}`);
+  };
+
+  const handleCreateWeek = async () => {
+    if (!canEdit) return;
+    const weekNumber =
+      typeof newWeekNumber === "number"
+        ? newWeekNumber
+        : Math.max(0, ...courseState.weeks.map((week) => week.week_number)) + 1;
+
+    try {
+      const supabaseClient = getSupabaseClient();
+      const { error } = await supabaseClient.from("weeks").insert({
+        course_id: courseId,
+        week_number: weekNumber,
+        title: newWeekTitle.trim() || null,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setNewWeekNumber("");
+      setNewWeekTitle("");
+      await loadCourse();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to create week.";
+      setEditError(message);
+    }
+  };
+
+  const handleUpdateWeek = async (week: WeekRow) => {
+    if (!canEdit) return;
+    try {
+      const supabaseClient = getSupabaseClient();
+      const { error } = await supabaseClient
+        .from("weeks")
+        .update({ title: week.title })
+        .eq("id", week.id);
+
+      if (error) {
+        throw error;
+      }
+
+      await loadCourse();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to update week.";
+      setEditError(message);
+    }
+  };
+
+  const handleDeleteWeek = async (week: WeekRow) => {
+    if (!canEdit) return;
+    if ((itemsByWeek.get(week.id) ?? []).length > 0) {
+      setEditError("Delete items in this week before removing it.");
+      return;
+    }
+    try {
+      const supabaseClient = getSupabaseClient();
+      const { error } = await supabaseClient.from("weeks").delete().eq("id", week.id);
+
+      if (error) {
+        throw error;
+      }
+
+      await loadCourse();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to delete week.";
+      setEditError(message);
+    }
+  };
+
+  const handleCreateItem = async () => {
+    if (!canEdit) return;
+    if (!newItem.title.trim() || !newItem.weekId) {
+      setEditError("Title and week are required to create an item.");
+      return;
+    }
+
+    try {
+      const supabaseClient = getSupabaseClient();
+      const { error } = await supabaseClient.from("content_items").insert({
+        course_id: courseId,
+        week_id: newItem.weekId,
+        type: newItem.type,
+        title: newItem.title.trim(),
+        body: newItem.body.trim() || null,
+        link_url: newItem.linkUrl.trim() || null,
+        sort_order: Number(newItem.sortOrder) || 1,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setNewItem({
+        type: "lesson",
+        title: "",
+        body: "",
+        linkUrl: "",
+        sortOrder: 1,
+        weekId: newItem.weekId,
+      });
+      await loadCourse();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to create item.";
+      setEditError(message);
+    }
+  };
+
+  const handleUpdateItem = async (item: ContentItemRow) => {
+    if (!canEdit) return;
+    try {
+      const supabaseClient = getSupabaseClient();
+      const { error } = await supabaseClient
+        .from("content_items")
+        .update({
+          title: item.title,
+          body: item.body,
+          link_url: item.link_url,
+          type: item.type,
+          sort_order: item.sort_order,
+          week_id: item.week_id,
+        })
+        .eq("id", item.id);
+
+      if (error) {
+        throw error;
+      }
+
+      await loadCourse();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to update item.";
+      setEditError(message);
+    }
+  };
+
+  const handleDeleteItem = async (item: ContentItemRow) => {
+    if (!canEdit) return;
+    try {
+      const supabaseClient = getSupabaseClient();
+      const { error } = await supabaseClient
+        .from("content_items")
+        .delete()
+        .eq("id", item.id);
+
+      if (error) {
+        throw error;
+      }
+
+      await loadCourse();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to delete item.";
+      setEditError(message);
+    }
   };
 
   return (
@@ -311,6 +513,317 @@ export default function CoursePage() {
                     ))}
                   </div>
                 </div>
+              )}
+
+              {canEdit && (
+                <section style={{ marginTop: 32 }}>
+                  <h3 style={{ fontSize: "1rem" }}>Edit mode</h3>
+                  <button
+                    type="button"
+                    onClick={() => setEditMode((prev) => !prev)}
+                    style={{
+                      marginTop: 8,
+                      padding: "6px 10px",
+                      borderRadius: 6,
+                      border: "1px solid #111827",
+                      background: "#fff",
+                    }}
+                  >
+                    {editMode ? "Exit edit mode" : "Enter edit mode"}
+                  </button>
+                  {editError && (
+                    <p style={{ marginTop: 8, color: "#b91c1c" }}>{editError}</p>
+                  )}
+
+                  {editMode && (
+                    <div style={{ marginTop: 16, display: "grid", gap: 24 }}>
+                      <div>
+                        <h4 style={{ fontSize: "1rem" }}>Create week</h4>
+                        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                          <input
+                            type="number"
+                            placeholder="Week #"
+                            value={newWeekNumber}
+                            onChange={(event) =>
+                              setNewWeekNumber(
+                                event.target.value ? Number(event.target.value) : "",
+                              )
+                            }
+                            style={{ width: 120 }}
+                          />
+                          <input
+                            placeholder="Title (optional)"
+                            value={newWeekTitle}
+                            onChange={(event) => setNewWeekTitle(event.target.value)}
+                            style={{ flex: 1 }}
+                          />
+                          <button type="button" onClick={handleCreateWeek}>
+                            Add week
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 style={{ fontSize: "1rem" }}>Create content item</h4>
+                        <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
+                          <select
+                            value={newItem.weekId || activeWeekId || ""}
+                            onChange={(event) =>
+                              setNewItem((prev) => ({
+                                ...prev,
+                                weekId: event.target.value,
+                              }))
+                            }
+                          >
+                            <option value="">Select week</option>
+                            {courseState.weeks.map((week) => (
+                              <option key={week.id} value={week.id}>
+                                {formatWeekLabel(week)}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            value={newItem.type}
+                            onChange={(event) =>
+                              setNewItem((prev) => ({
+                                ...prev,
+                                type: event.target.value,
+                              }))
+                            }
+                          >
+                            {[
+                              "overview",
+                              "lesson",
+                              "discussion",
+                              "quiz",
+                              "assignment",
+                              "announcement",
+                              "resource",
+                              "capstone",
+                            ].map((type) => (
+                              <option key={type} value={type}>
+                                {type}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            placeholder="Title"
+                            value={newItem.title}
+                            onChange={(event) =>
+                              setNewItem((prev) => ({
+                                ...prev,
+                                title: event.target.value,
+                              }))
+                            }
+                          />
+                          <textarea
+                            placeholder="Body"
+                            value={newItem.body}
+                            onChange={(event) =>
+                              setNewItem((prev) => ({
+                                ...prev,
+                                body: event.target.value,
+                              }))
+                            }
+                            rows={3}
+                          />
+                          <input
+                            placeholder="Link URL"
+                            value={newItem.linkUrl}
+                            onChange={(event) =>
+                              setNewItem((prev) => ({
+                                ...prev,
+                                linkUrl: event.target.value,
+                              }))
+                            }
+                          />
+                          <input
+                            type="number"
+                            placeholder="Sort order"
+                            value={newItem.sortOrder}
+                            onChange={(event) =>
+                              setNewItem((prev) => ({
+                                ...prev,
+                                sortOrder: Number(event.target.value) || 1,
+                              }))
+                            }
+                          />
+                          <button type="button" onClick={handleCreateItem}>
+                            Add item
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 style={{ fontSize: "1rem" }}>Edit weeks</h4>
+                        <div style={{ display: "grid", gap: 12, marginTop: 8 }}>
+                          {courseState.weeks.map((week, index) => (
+                            <div key={week.id} style={{ display: "flex", gap: 8 }}>
+                              <input
+                                value={week.title ?? ""}
+                                onChange={(event) => {
+                                  const updated = [...courseState.weeks];
+                                  updated[index] = {
+                                    ...week,
+                                    title: event.target.value,
+                                  };
+                                  setCourseState((prev) => ({
+                                    ...prev,
+                                    weeks: updated,
+                                  }));
+                                }}
+                                placeholder={formatWeekLabel(week)}
+                                style={{ flex: 1 }}
+                              />
+                              <button type="button" onClick={() => handleUpdateWeek(week)}>
+                                Save
+                              </button>
+                              <button type="button" onClick={() => handleDeleteWeek(week)}>
+                                Delete
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 style={{ fontSize: "1rem" }}>Edit items</h4>
+                        <div style={{ display: "grid", gap: 16, marginTop: 8 }}>
+                          {courseState.items.map((item, index) => (
+                            <div
+                              key={item.id}
+                              style={{
+                                border: "1px solid #e5e7eb",
+                                borderRadius: 8,
+                                padding: 12,
+                              }}
+                            >
+                              <div style={{ display: "grid", gap: 8 }}>
+                                <input
+                                  value={item.title}
+                                  onChange={(event) => {
+                                    const updated = [...courseState.items];
+                                    updated[index] = {
+                                      ...item,
+                                      title: event.target.value,
+                                    };
+                                    setCourseState((prev) => ({
+                                      ...prev,
+                                      items: updated,
+                                    }));
+                                  }}
+                                />
+                                <select
+                                  value={item.type}
+                                  onChange={(event) => {
+                                    const updated = [...courseState.items];
+                                    updated[index] = {
+                                      ...item,
+                                      type: event.target.value,
+                                    };
+                                    setCourseState((prev) => ({
+                                      ...prev,
+                                      items: updated,
+                                    }));
+                                  }}
+                                >
+                                  {[
+                                    "overview",
+                                    "lesson",
+                                    "discussion",
+                                    "quiz",
+                                    "assignment",
+                                    "announcement",
+                                    "resource",
+                                    "capstone",
+                                  ].map((type) => (
+                                    <option key={type} value={type}>
+                                      {type}
+                                    </option>
+                                  ))}
+                                </select>
+                                <select
+                                  value={item.week_id ?? ""}
+                                  onChange={(event) => {
+                                    const updated = [...courseState.items];
+                                    updated[index] = {
+                                      ...item,
+                                      week_id: event.target.value || null,
+                                    };
+                                    setCourseState((prev) => ({
+                                      ...prev,
+                                      items: updated,
+                                    }));
+                                  }}
+                                >
+                                  <option value="">No week</option>
+                                  {courseState.weeks.map((week) => (
+                                    <option key={week.id} value={week.id}>
+                                      {formatWeekLabel(week)}
+                                    </option>
+                                  ))}
+                                </select>
+                                <textarea
+                                  value={item.body ?? ""}
+                                  onChange={(event) => {
+                                    const updated = [...courseState.items];
+                                    updated[index] = {
+                                      ...item,
+                                      body: event.target.value,
+                                    };
+                                    setCourseState((prev) => ({
+                                      ...prev,
+                                      items: updated,
+                                    }));
+                                  }}
+                                  rows={3}
+                                />
+                                <input
+                                  value={item.link_url ?? ""}
+                                  onChange={(event) => {
+                                    const updated = [...courseState.items];
+                                    updated[index] = {
+                                      ...item,
+                                      link_url: event.target.value || null,
+                                    };
+                                    setCourseState((prev) => ({
+                                      ...prev,
+                                      items: updated,
+                                    }));
+                                  }}
+                                  placeholder="Link URL"
+                                />
+                                <input
+                                  type="number"
+                                  value={item.sort_order}
+                                  onChange={(event) => {
+                                    const updated = [...courseState.items];
+                                    updated[index] = {
+                                      ...item,
+                                      sort_order: Number(event.target.value) || 1,
+                                    };
+                                    setCourseState((prev) => ({
+                                      ...prev,
+                                      items: updated,
+                                    }));
+                                  }}
+                                />
+                              </div>
+                              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                                <button type="button" onClick={() => handleUpdateItem(item)}>
+                                  Save
+                                </button>
+                                <button type="button" onClick={() => handleDeleteItem(item)}>
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </section>
               )}
             </div>
           )}
