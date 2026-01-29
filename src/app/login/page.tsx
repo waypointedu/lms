@@ -12,6 +12,15 @@ export default function LoginPage() {
     "idle",
   );
   const [message, setMessage] = useState<string | null>(null);
+  const emailRedirectBaseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (process.env.NEXT_PUBLIC_VERCEL_URL
+      ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+      : null);
+  const emailRedirectTo = `${
+    emailRedirectBaseUrl?.replace(/\/$/, "") ??
+    (typeof window === "undefined" ? "" : window.location.origin)
+  }/dashboard`;
 
   useEffect(() => {
     const supabaseClient = getSupabaseClient();
@@ -37,7 +46,7 @@ export default function LoginPage() {
     const { error } = await supabaseClient.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo,
       },
     });
 
